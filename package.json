@@ -1,0 +1,13 @@
+{
+  "name": "kcoin-blockchain",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "repository": "git@github.com:nguyenkha/kcoin-blockchain.git",
+  "author": "Kha Do <donguyenkha@gmail.com>",
+  "dependencies": {
+    "express": "^4.16.2"
+  }
+}
