@@ -8,6 +8,6 @@
   "repository": "git@github.com:nguyenkha/kcoin-blockchain.git",
   "author": "Kha Do <donguyenkha@gmail.com>",
   "dependencies": {
-    "express": "^4.16.2"
+    "restify": "^6.3.4"
   }
 }

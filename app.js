@@ -1,9 +1,9 @@
-const express = require('express');
+const restify = require('restify');
 
-const app = express();
+const app = restify.createServer();
 
 app.get('/', function (req, res) {
-  res.json({
+  res.send(200, {
     message: 'kcoin blockchain api by Kha Do'
   });
 });
