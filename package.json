@@ -3,11 +3,16 @@
   "version": "1.0.0",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "knex": "knex"
   },
   "repository": "git@github.com:nguyenkha/kcoin-blockchain.git",
   "author": "Kha Do <donguyenkha@gmail.com>",
   "dependencies": {
-    "restify": "^6.3.4"
+    "knex": "^0.14.2",
+    "lodash": "^4.17.4",
+    "pg": "^7.4.0",
+    "restify": "^6.3.4",
+    "ws": "^3.3.1"
   }
 }
