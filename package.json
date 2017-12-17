@@ -9,6 +9,7 @@
   "repository": "git@github.com:nguyenkha/kcoin-blockchain.git",
   "author": "Kha Do <donguyenkha@gmail.com>",
   "dependencies": {
+    "awilix": "^2.9.0",
     "big-integer": "^1.6.26",
     "bluebird": "^3.5.1",
     "express-async-wrap": "^1.0.0",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "chai": "^4.1.2",
+    "chai-as-promised": "^7.1.1",
     "mocha": "^4.0.1"
   }
 }
