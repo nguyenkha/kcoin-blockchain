@@ -71,6 +71,8 @@ exports.up = async function(knex) {
 };
 
 exports.down = async function(knex) {
+  await knex.schema.dropTable('transaction_inputs');
+  await knex.schema.dropTable('transaction_outputs');
   await knex.schema.dropTable('block_transactions');
   await knex.schema.dropTable('blocks');
   await knex.schema.dropTable('transactions');
