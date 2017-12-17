@@ -10,6 +10,11 @@ module.exports = exports = ({ db, utils }) => {
     return db(TABLE_NAME).where('hash', hash).first();
   };
 
+  // Convert a transaction to binary format for hashing or checking the size
+  let toBinary = function (transaction) {
+    Buffer
+  };
+
   // https://en.bitcoin.it/wiki/Protocol_rules - "tx" messages
 
   // 1. Check syntactic correctness
@@ -45,9 +50,7 @@ module.exports = exports = ({ db, utils }) => {
   let checkOutputValue = async function (transaction) {
     // Check output value is integer in KCC
     transaction.outputs.each((output) => {
-      try {
-        bigInt(output.value);
-      } catch (err) {
+      if (!Number.isInteger(output.value)) {
         throw Error('Output value must be a integer')
       }
     });
@@ -113,15 +116,9 @@ module.exports = exports = ({ db, utils }) => {
 
   // 14. Reject if the sum of input values < sum of output values
   let checkSumOfInputAndOutput = async function (transaction) {
-    let sumInput = bigInt.zero;
-    _.each(transaction.inputs, input => {
-      sumInput = sumInput.add(bigInt(input.value))
-    });
-    let sumOutput = bigInt.zero;
-    _.each(transaction.outputs, output => {
-      sumOutput = sumOutput.add(bigInt(output.value))
-    });
-    if (sumInput.compare(sumOutput) === -1) {
+    let sumInput = _.sumBy(transaction.inputs, input => input.value);
+    let sumOutput = _.sumBy(transaction.outputs, output => output.value);
+    if (sumInput < sumOutput) {
       throw Error('Total input must be equal or larger than total output');
     }
   };

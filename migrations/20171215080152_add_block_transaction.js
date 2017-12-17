@@ -55,8 +55,8 @@ exports.up = async function(knex) {
     // Input index
     t.integer('index').unsigned().notNullable();
     t.primary(['transactionHash', 'index']);
-    // Value, be careful with biginteger
-    t.biginteger('value').notNullable();
+    // Value
+    t.integer('value').notNullable();
     // Lock script
     t.text('lockScript').notNullable();
   });
