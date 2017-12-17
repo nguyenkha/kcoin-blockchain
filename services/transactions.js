@@ -12,7 +12,74 @@ module.exports = exports = ({ db, utils }) => {
 
   // Convert a transaction to binary format for hashing or checking the size
   let toBinary = function (transaction) {
-    Buffer
+    let version = Buffer.alloc(4);
+    version.writeUInt32BE(transaction.version);
+    let inputCount = Buffer.alloc(4);
+    inputCount.writeUInt32BE(transaction.inputs.length);
+    let inputs = Buffer.concat(transaction.inputs.map(input => {
+      // Output transaction hash
+      let outputHash = Buffer.from(input.hash, 'hex');
+      // Output transaction index
+      let outputIndex = Buffer.alloc(4);
+      outputIndex.writeUInt32BE(input.index);
+      // Script length
+      let unlockScriptLength = Buffer.alloc(4);
+      unlockScriptLength.writeUInt32BE(input.unlockScript.length);
+      // Script
+      let unlockScript = Buffer.from(input.unlockScript, 'binary');
+      return Buffer.concat([outputHash, outputIndex, unlockScriptLength, unlockScript ]);
+    }));
+    let outputCount = Buffer.alloc(4);
+    outputCount.writeUInt32BE(transaction.outputs.length);
+    let outputs = Buffer.concat(transaction.outputs.map(output => {
+      // Output value
+      let value = Buffer.alloc(4);
+      value.writeUInt32BE(output.value);
+      // Script length
+      let lockScriptLength = Buffer.alloc(4);
+      lockScriptLength.writeUInt32BE(output.lockScript.length);
+      // Script
+      let lockScript = Buffer.from(output.lockScript);
+      return Buffer.concat([value, lockScriptLength, lockScript ]);
+    }));
+    return Buffer.concat([ version, inputCount, inputs, outputCount, outputs ]);
+  };
+
+  // Convert data back to object
+  let fromBinary = function(data) {
+    let transaction = {};
+    let offset = 0;
+    transaction.version = data.readUInt32BE(offset);
+    offset += 4;
+    transaction.inputs = [];
+    let inputCount = data.readUInt32BE(offset);
+    offset += 4;
+    for (let i = 0; i < inputCount; i++) {
+      let input = {};
+      input.hash = data.slice(offset, offset + 32).toString('hex');
+      offset += 32;
+      input.index = data.readUInt32BE(offset);
+      offset += 4;
+      let unlockScriptLength = data.readUInt32BE(offset);
+      offset += 4;
+      input.unlockScript = data.slice(offset, offset + unlockScriptLength).toString('binary');
+      offset += unlockScriptLength;
+      transaction.inputs.push(input);
+    };
+    transaction.outputs = [];
+    let outputCount = data.readUInt32BE(offset);
+    offset += 4;
+    for (let i = 0; i < outputCount; i++) {
+      let output = {};
+      output.value = data.readUInt32BE(offset);
+      offset += 4;
+      let lockScriptLength = data.readUInt32BE(offset);
+      offset += 4;
+      output.lockScript = data.slice(offset, offset + lockScriptLength).toString('binary');
+      offset += lockScriptLength;
+      transaction.outputs.push(output);
+    }
+    return transaction;
   };
 
   // https://en.bitcoin.it/wiki/Protocol_rules - "tx" messages
@@ -183,5 +250,5 @@ module.exports = exports = ({ db, utils }) => {
     // Return the format transaction with all information
   };
 
-  return { findByHash, add };
+  return { findByHash, add, toBinary, fromBinary };
 };

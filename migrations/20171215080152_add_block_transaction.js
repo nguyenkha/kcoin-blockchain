@@ -5,12 +5,12 @@ exports.up = async function(knex) {
     t.string('hash', 32).primary();
     // Block height starting starting from 0
     t.integer('height').unsigned().notNullable();
-    // Version, signed, 1
-    t.integer('version').notNullable();
-    // Null for genesis block
-    t.string('hashPrevBlock', 32);
+    // Version, 1
+    t.integer('version').unsigned().notNullable();
+    // Null for genesis block, no need to reference, may be orphan
+    t.string('prevBlockHash', 32);
     // Merkle root hash of all transaction
-    t.string('hashMerkleRoot', 32).notNullable();
+    t.string('merkleRootHash', 32).notNullable();
     // Timestamp that block was generated, unsigned
     t.integer('time').unsigned().notNullable();
     // Nonce to generate block has with difficulty
@@ -23,8 +23,8 @@ exports.up = async function(knex) {
   await knex.schema.createTable('transactions', t => {
     // Hash as primary key
     t.string('hash', 32).primary();
-    // Version, signed, 1
-    t.integer('version').notNullable();
+    // Version, 1
+    t.integer('version').unsigned().notNullable();
     // Total input
     t.integer('totalInput').notNullable();
     // Total output
@@ -36,11 +36,11 @@ exports.up = async function(knex) {
   // Transaction input
   await knex.schema.createTable('transaction_inputs', t => {
     // Transaction hash
-    t.string('transactionHash', 32).notNullable();
+    t.string('transactionHash', 32).notNullable().references('transactions.hash');
     // Input index
     t.integer('index').unsigned().notNullable();
     t.primary(['transactionHash', 'index']);
-    // Referenced output transaction
+    // Referenced output transaction, no need to reference, may be orphan
     t.string('referencedOutputHash', 32).notNullable();
     // Referenced output transaction index
     t.integer('referencedOutputIndex').notNullable();
@@ -51,12 +51,12 @@ exports.up = async function(knex) {
   // Transaction output
   await knex.schema.createTable('transaction_outputs', t => {
     // Transaction hash
-    t.string('transactionHash', 32).notNullable();
+    t.string('transactionHash', 32).notNullable().references('transactions.hash');
     // Input index
     t.integer('index').unsigned().notNullable();
     t.primary(['transactionHash', 'index']);
     // Value
-    t.integer('value').notNullable();
+    t.integer('value').unsigned().notNullable();
     // Lock script
     t.text('lockScript').notNullable();
   });
