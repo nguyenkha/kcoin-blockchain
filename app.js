@@ -4,8 +4,16 @@ const app = restify.createServer();
 const errors = require('restify-errors');
 const wrap = require('express-async-wrap');
 const blocks = require('./models/blocks');
-const transactions = require('./models/blocks');
+const transactions = require('./models/transactions');
 const _ = require('lodash');
+
+// Setup body parser and query parser
+app.use(restify.plugins.queryParser({
+  mapParams: true
+}));
+app.use(restify.plugins.bodyParser({
+  mapParams: true
+}));
 
 // Hello message
 app.get('/', function (req, res) {
@@ -16,16 +24,18 @@ app.get('/', function (req, res) {
 
 // Add new transaction. TODO: Add WS
 app.post('/transactions', wrap(async function (req, res) {
-  // Verify transaction
-
-  // Add transaction into database
+  // Validate and add transaction into database
+  try {
+    let transaction = await transactions.add(req.body);
+    res.send(200, transaction);
+  } catch (err) {
+    throw new errors.InvalidContentError(err.message);
+  }
 }));
 
 // Add new block. TODO: Add WS, Discard alternative brand block has no news
 app.post('/blocks', wrap(async function (req, res) {
-  // Verify block
-
-  // Add block into database
+  // Validate and add block into database
 }));
 
 // Get all block in main chain. TODO: Pagination
@@ -60,7 +70,7 @@ app.get('/transactions/:id', wrap(async function (req, res) {
   if (!transaction) {
     throw new errors.ResourceNotFoundError('Transaction not found');
   }
-  // Find block which transaction was put in
+  // Find block which transaction was put in (only return hash of block)
   let blocksContainTransaction = await blocks.findAllByTransactionHash(transaction.hash);
   // Format response
   res.send(200, transaction);

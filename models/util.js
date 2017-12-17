@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const _ = require('lodash');
+const bitInt = require('big-integer');
 
 // SHA256 hash
 exports.hash = function (data) {
@@ -34,4 +35,9 @@ exports.generateMarkelRoot = function (hashes) {
     return newHashes[0]; 
   }
   return exports.generateMarkelRoot(newHashes);
+};
+
+// Convert hex to big int
+exports.hexToBigInt = function (hex) {
+  return bitInt(hex, 16);
 };

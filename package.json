@@ -9,6 +9,9 @@
   "repository": "git@github.com:nguyenkha/kcoin-blockchain.git",
   "author": "Kha Do <donguyenkha@gmail.com>",
   "dependencies": {
+    "big-integer": "^1.6.26",
+    "bluebird": "^3.5.1",
+    "express-async-wrap": "^1.0.0",
     "knex": "^0.14.2",
     "lodash": "^4.17.4",
     "pg": "^7.4.0",

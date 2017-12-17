@@ -15,3 +15,8 @@ exports.findByHeight = async function (height) {
   // Block with max height and created first
   return db(TABLE_NAME).where('height', max).orderBy('createdAt').first();
 };
+
+// Validate block (version, all transaction which use validate output, previous hash, hash)
+exports.validate = async function (block) {
+  
+};
