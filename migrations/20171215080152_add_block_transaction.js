@@ -15,8 +15,8 @@ exports.up = async function(knex) {
     t.integer('time').unsigned().notNullable();
     // Nonce to generate block has with difficulty
     t.integer('nonce').unsigned().notNullable();
-    // DB timestamp
-    t.dateTime('createdAt').defaultTo(knex.fn.now());
+    // Type: 0 - Side branch, 1 - Main chain, -1 - Orphan
+    t.integer('type').notNullable();
   });
 
   // Transaction
@@ -25,22 +25,48 @@ exports.up = async function(knex) {
     t.string('hash', 32).primary();
     // Version, signed, 1
     t.integer('version').notNullable();
-    // Inputs as JSON
-    t.jsonb('inputs');
-    // Output as JSON
-    t.jsonb('outputs');
-    // DB timestamp
-    t.dateTime('createdAt').defaultTo(knex.fn.now());
+    // Total input
+    t.integer('totalInput').notNullable();
+    // Total output
+    t.integer('totalOutput').notNullable();
+    // Type: 0 - Pool, 1 - Main chain, -1 - Orphan
+    t.integer('type').notNullable();
   });
 
+  // Transaction input
+  await knex.schema.createTable('transaction_inputs', t => {
+    // Transaction hash
+    t.string('transactionHash', 32).notNullable();
+    // Input index
+    t.integer('index').unsigned().notNullable();
+    t.primary(['transactionHash', 'index']);
+    // Referenced output transaction
+    t.string('referencedOutputHash', 32).notNullable();
+    // Referenced output transaction index
+    t.integer('referencedOutputIndex').notNullable();
+    // Unlock script
+    t.text('unlockScript').notNullable();
+  });
+
+  // Transaction output
+  await knex.schema.createTable('transaction_outputs', t => {
+    // Transaction hash
+    t.string('transactionHash', 32).notNullable();
+    // Input index
+    t.integer('index').unsigned().notNullable();
+    t.primary(['transactionHash', 'index']);
+    // Value, be careful with biginteger
+    t.biginteger('value').notNullable();
+    // Lock script
+    t.text('lockScript').notNullable();
+  });
+  
   // Transactions in block, if not, transation is waiting to be confirmed
   await knex.schema.createTable('block_transactions', t => {
     // Primary key
     t.string('blockHash', 32).notNullable().references('blocks.hash');
     t.string('transctionHash', 32).notNullable().references('transactions.hash');
     t.primary(['blockHash', 'transctionHash']);
-    // DB timestamp
-    t.dateTime('createdAt').defaultTo(knex.fn.now());
   });
 };
 
