@@ -45,7 +45,9 @@ let checkSizeInBytes = async function (transaction) {
 let checkOutputValue = async function (transaction) {
   // Check output value is integer in KCC
   transaction.outputs.each((output) => {
-    if (!Number.isInteger(output.value)) {
+    try {
+      bigInt(output.value);
+    } catch (err) {
       throw Error('Output value must be a integer')
     }
   });
@@ -111,9 +113,15 @@ let checkInputValue = async function (transaction) {
 
 // 14. Reject if the sum of input values < sum of output values
 let checkSumOfInputAndOutput = async function (transaction) {
-  let sumInput = _.sumBy(transaction.inputs, input => input.value);
-  let sumOutput = _.sumBy(transaction.outputs, output => output.value);
-  if (sumInput < sumOutput) {
+  let sumInput = bigInt.zero;
+  _.each(transaction.inputs, input => {
+    sumInput = sumInput.add(bigInt(input.value))
+  });
+  let sumOutput = bigInt.zero;
+  _.each(transaction.outputs, output => {
+    sumOutput = sumOutput.add(bigInt(output.value))
+  });
+  if (sumInput.compare(sumOutput) === -1) {
     throw Error('Total input must be equal or larger than total output');
   }
 };
