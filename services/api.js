@@ -3,7 +3,7 @@ const errors = require('restify-errors');
 const wrap = require('express-async-wrap');
 const _ = require('lodash');
 
-module.exports = exports = ({ blocks, transactions, utils }) => {
+module.exports = exports = ({ blocks, transactions, miner, utils, init }) => {
   const app = restify.createServer();
   // Setup body parser and query parser
   app.use(restify.plugins.queryParser({
@@ -19,6 +19,36 @@ module.exports = exports = ({ blocks, transactions, utils }) => {
       message: 'kcoin blockchain api by Kha Do'
     });
   });
+
+  // Init
+  app.get('/init', wrap(async function (req, res) {
+    // Check genesis block exist
+    let height = blocks.getCurrentHeight();
+    if (height === -1) {
+      // Generate add address
+      let addressWithKeys = utils.generateAddress();
+      // Generate genesis block
+      let genesisBlock = miner.generateBlock('0'.repeat(32), 'KCOIN BLOCKCHAIN API BY KHA DO', [
+        {
+          value: blocks.FIXED_REWARD,
+          lockScript: 'ADDRESS ' + addressWithKeys.address
+        }
+      ], []);
+      // Add this block to main branch
+      try {
+        await addToMainBranch(genesisBlock);
+        res.send(200, addressWithKeys);
+      } catch (err) {
+        res.send(400, {
+          error: err.message
+        });
+      }
+    } else {
+      res.send(200, {
+        message: 'Blockchain has already initialized'
+      });
+    }
+  }));
 
   // Add new transaction. TODO: Add WS
   app.post('/transactions', wrap(async function (req, res) {

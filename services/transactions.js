@@ -121,7 +121,7 @@ module.exports = exports = ({ db, utils }) => {
   let checkNotCoinbase = async function (transaction) {
     // Check input transaction hash not 0 and index not -1
     transaction.inputs.forEach(input => {
-      let hashValue = util.hexToBigInt(input.referencedOutputHash);
+      let hashValue = utils.hexToBigInt(input.referencedOutputHash);
       if (hashValue.compare(bigInt.zero) === 0) {
         throw Error('Reference transaction output can not be 0 except coinbase transaction');
       }

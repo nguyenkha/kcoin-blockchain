@@ -22,7 +22,11 @@ module.exports = exports = ({ db, transactions }) => {
 
   // Get the current height
   let getCurrentHeight = async function () {
-    return db(TABLE_NAME).max('height AS max').first()['max'];
+    let max = db(TABLE_NAME).max('height AS max').first()['max'];
+    if (Number.isInteger(max)) {
+      return max;
+    }
+    return -1;
   };
 
   // Transactions to binary
@@ -51,14 +55,14 @@ module.exports = exports = ({ db, transactions }) => {
     // Binary format of transaction
     let transactionsBinary = getTransactionsBinary(block.transactions);
     // Hash of all transactiion
-    let transactionsHash = util.hash(transactionsBinary);
+    let transactionsHash = utils.hash(transactionsBinary);
     // Always zero
     transactionCount.writeUInt32BE(0);
     return Buffer.concat([ version, previousBlockHash, transactionsHash, timestamp, difficulty, nounce, transactionCount ]);
   };
 
   let calculateHash = function (block) {
-    return util.hash(toHeaderBinary(block));
+    return utils.hash(toHeaderBinary(block));
   };
 
   // 1. Check syntactic correctness
@@ -105,7 +109,7 @@ module.exports = exports = ({ db, transactions }) => {
           throw Error('Coinbase transaction can only have 1 input');
         }
         let input = transaction.inputs[0];
-        let hashValue = util.hexToBigInt(input.referencedOutputHash);
+        let hashValue = utils.hexToBigInt(input.referencedOutputHash);
         if (hashValue.compare(bigInt.zero) === 0) {
           throw Error('Coinbase transaction must have referenced output hash = 0');
         }
@@ -114,7 +118,7 @@ module.exports = exports = ({ db, transactions }) => {
         }
       } else {
         transaction.inputs.forEach(input => {
-          let hashValue = util.hexToBigInt(input.referencedOutputHash);
+          let hashValue = utils.hexToBigInt(input.referencedOutputHash);
           if (hashValue.compare(bigInt.zero) === 0) {
             throw Error('Normal transaction must not have referenced output hash = 0');
           }
@@ -139,7 +143,7 @@ module.exports = exports = ({ db, transactions }) => {
 
   // 10. Verify Merkle hash
   let checkTransactionsHash = async function (block) {
-    if (block.transactionsHash !== util.hash(getTransactionsBinary(block.transactions).toString('hex'))) {
+    if (block.transactionsHash !== utils.hash(getTransactionsBinary(block.transactions).toString('hex'))) {
        throw Error('Transactions hash does not match');
     }
   };
@@ -188,6 +192,18 @@ module.exports = exports = ({ db, transactions }) => {
     await transactions.addCoinbase(coinbase);
     // Add coinbase to array for add to block
     transactionsInPool.unshift(await transactions.findByHash(coinbase.hash));
+    // Save block to database
+    let currentHeight = getCurrentHeight();
+    await db(TABLE_NAME).insert({
+      height: currentHeight + 1,
+      hash: block.hash,
+      version: block.version,
+      previousBlockHash: block.previousBlockHash,
+      transactionsHash: block.transactionsHash,
+      timestamp: block.timestamp,
+      nonce: block.nonce,
+      difficulty: block.difficulty
+    });
     // Add transactions to block, remove from pool
     await Promise.each(transactionsInPool, (t, i) => {
       return transactions.addToBlock(t.hash, block.hash, i);
@@ -231,5 +247,5 @@ module.exports = exports = ({ db, transactions }) => {
     return block;
   };
 
-  return { findByHash, findByHeight, getCurrentHeight, add };
+  return { findByHash, findByHeight, getCurrentHeight, add, FIXED_DIFFICULTY, FIXED_REWARD, addToMainBranch };
 };
