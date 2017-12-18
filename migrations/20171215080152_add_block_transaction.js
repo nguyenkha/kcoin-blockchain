@@ -8,13 +8,17 @@ exports.up = async function(knex) {
     // Version, 1
     t.integer('version').unsigned().notNullable();
     // Null for genesis block, no need to reference, may be orphan
-    t.string('prevBlockHash', 32);
+    t.string('previousBlockHash', 32);
     // Hash of all transaction
     t.string('transactionsHash', 32).notNullable();
     // Timestamp that block was generated, unsigned
-    t.integer('time').unsigned().notNullable();
+    t.integer('timestamp').unsigned().notNullable();
     // Nonce to generate block has with difficulty
     t.integer('nonce').unsigned().notNullable();
+    // Difficulty apply for this block
+    t.integer('difficulty').unsigned().notNullable();
+    // DB timestamp
+    t.dateTime('createdAt').defaultTo(knex.fn.now());
   });
 
   // Transaction
@@ -23,10 +27,14 @@ exports.up = async function(knex) {
     t.string('hash', 32).primary();
     // Version, 1
     t.integer('version').unsigned().notNullable();
+    // Fee
+    t.integer('fee').unsigned().notNullable();
     // Hash of block (main branch), null if in pool
     t.string('blockHash', 32).references('blocks.hash');
     // Index of transaction in block (main branch), null if in pool
     t.integer('index').unsigned();
+    // DB timestamp
+    t.dateTime('createdAt').defaultTo(knex.fn.now());
   });
 
   // Transaction input
@@ -38,7 +46,7 @@ exports.up = async function(knex) {
     t.primary(['transactionHash', 'index']);
     // Referenced output transaction, no need to reference
     t.string('referencedOutputHash', 32).notNullable();
-    // Referenced output transaction index
+    // Referenced output transaction index, signed
     t.integer('referencedOutputIndex').notNullable();
     // Unlock script
     t.text('unlockScript').notNullable();

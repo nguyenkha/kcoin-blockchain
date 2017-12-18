@@ -16,31 +16,48 @@ module.exports = exports = ({ db, utils }) => {
     return db(TABLE_NAME).where('hash', hash).first();
   };
 
+  // Find transactions by hashes
+  let findByHashes = async function (hashes) {
+    return db(TABLE_NAME).whereIn('hash', hashes);
+  };
+
+  // Update block
+  let addToBlock = async function (hash, blockHash, index) {
+    await db(TABLE_NAME).where('hash', hash).update({
+      blockHash: blockHash,
+      index: index
+    });
+  };
+
   // Convert a transaction to binary format for hashing or checking the size
   let toBinary = function (transaction, withoutUnlockScript) {
     let version = Buffer.alloc(4);
     version.writeUInt32BE(transaction.version);
     let inputCount = Buffer.alloc(4);
     inputCount.writeUInt32BE(transaction.inputs.length);
-    let inputs = Buffer.concat(_.sortBy(transaction.inputs, 'index').map(input => {
+    let inputs = Buffer.concat(transaction.inputs.map(input => {
       // Output transaction hash
-      let outputHash = Buffer.from(input.hash, 'hex');
+      let outputHash = Buffer.from(input.referencedOutputHash, 'hex');
       // Output transaction index
       let outputIndex = Buffer.alloc(4);
-      outputIndex.writeUInt32BE(input.index);
+      // Signed may be -1
+      outputIndex.writeInt32BE(input.referencedOutputIndex);
+      let unlockScriptLength = Buffer.alloc(4);
       // For signing
-      if (withoutUnlockScript) {
+      if (!withoutUnlockScript) {
         // Script length
-        let unlockScriptLength = Buffer.alloc(4);
         unlockScriptLength.writeUInt32BE(input.unlockScript.length);
         // Script
         let unlockScript = Buffer.from(input.unlockScript, 'binary');
-        return Buffer.concat([outputHash, outputIndex, unlockScriptLength, unlockScript ]);
+        return Buffer.concat([ outputHash, outputIndex, unlockScriptLength, unlockScript ]);
       }
+      // 0 input
+      unlockScriptLength.writeUInt32BE(0);
+      return Buffer.concat([ outputHash, outputIndex, unlockScriptLength]);
     }));
     let outputCount = Buffer.alloc(4);
     outputCount.writeUInt32BE(transaction.outputs.length);
-    let outputs = Buffer.concat(_.sortBy(transaction.outputs, 'index').map(output => {
+    let outputs = Buffer.concat(transaction.outputs.map(output => {
       // Output value
       let value = Buffer.alloc(4);
       value.writeUInt32BE(output.value);
@@ -54,50 +71,13 @@ module.exports = exports = ({ db, utils }) => {
     return Buffer.concat([ version, inputCount, inputs, outputCount, outputs ]);
   };
 
-  // Convert data back to object
-  let fromBinary = function(data) {
-    let transaction = {};
-    let offset = 0;
-    transaction.version = data.readUInt32BE(offset);
-    offset += 4;
-    transaction.inputs = [];
-    let inputCount = data.readUInt32BE(offset);
-    offset += 4;
-    for (let i = 0; i < inputCount; i++) {
-      let input = {};
-      input.hash = data.slice(offset, offset + 32).toString('hex');
-      offset += 32;
-      input.index = data.readUInt32BE(offset);
-      offset += 4;
-      let unlockScriptLength = data.readUInt32BE(offset);
-      offset += 4;
-      input.unlockScript = data.slice(offset, offset + unlockScriptLength).toString('binary');
-      offset += unlockScriptLength;
-      transaction.inputs.push(input);
-    };
-    transaction.outputs = [];
-    let outputCount = data.readUInt32BE(offset);
-    offset += 4;
-    for (let i = 0; i < outputCount; i++) {
-      let output = {};
-      output.value = data.readUInt32BE(offset);
-      offset += 4;
-      let lockScriptLength = data.readUInt32BE(offset);
-      offset += 4;
-      output.lockScript = data.slice(offset, offset + lockScriptLength).toString('binary');
-      offset += lockScriptLength;
-      transaction.outputs.push(output);
-    }
-    return transaction;
-  };
-
   // 1. Check syntactic correctness
   let checkVersion = async function (transaction) {
     if (transaction.version !== 1) {
       throw Error('Only support version 1');
     }
   };
-
+  
   // 2. Make sure neither in or out lists are empty
   let checkInputOutputNotEmpty = async function (transaction) {
     if (transaction.inputs.length === 0) {
@@ -107,10 +87,11 @@ module.exports = exports = ({ db, utils }) => {
       throw Error('Outputs cannot be empty');
     }
   };
-
+  
   // 3. Size in bytes <= MAX_BLOCK_SIZE
   let checkSizeInBytes = async function (transaction) {
     transaction.binary = toBinary(transaction);
+    transaction.hash = utils.hash(transaction.binary);
     if (transaction.binary.length > MAX_SIZE) {
       throw Error('Transaction size > ' + (MAX_SIZE / 1024) + 'kB');
     }
@@ -119,7 +100,7 @@ module.exports = exports = ({ db, utils }) => {
   // 4. Each output value, as well as the total, must be in legal money range
   let checkOutputValue = async function (transaction) {
     transaction.totalOutput = 0;
-    transaction.outputs.each(output => {
+    transaction.outputs.forEach(output => {
       // Check output value is integer
       if (!Number.isInteger(output.value)) {
         throw Error('Output value must be a integer');
@@ -139,16 +120,27 @@ module.exports = exports = ({ db, utils }) => {
   // 5. Make sure none of the inputs have hash=0, n=-1 (coinbase transaction)
   let checkNotCoinbase = async function (transaction) {
     // Check input transaction hash not 0 and index not -1
-    transaction.inputs.each(input => {
-      let hashValue = util.hexToBigInt(input.hash);
+    transaction.inputs.forEach(input => {
+      let hashValue = util.hexToBigInt(input.referencedOutputHash);
       if (hashValue.compare(bigInt.zero) === 0) {
         throw Error('Reference transaction output can not be 0 except coinbase transaction');
       }
-      if (input.index === -1) {
+      if (input.referencedOutputIndex === -1) {
         throw Error('Reference transaction output index can not be -1 except coinbase transaction');
       }
     });
   };
+
+  let checkLockScript = async function (transaction) {
+    // Check lock script
+    transaction.forEach(transaction.outputs, output => {
+      // ADDRESS [ADDRESS]
+      let parts = output.lockScript.split(' ');
+      if (parts.length !== 2 || parts[0] !== 'ADDRESS') {
+        throw Error('Lock script must have format ADDRESS [ADDRESS]');
+      }
+    });
+  }; 
 
   // 6. Check that nLockTime <= INT_MAX[1], size in bytes >= 100[2], and sig opcount <= 2[3]
   // => Not implement
@@ -156,26 +148,18 @@ module.exports = exports = ({ db, utils }) => {
   // 7. Reject "nonstandard" transactions: scriptSig doing anything other than pushing numbers on the stack, or scriptPubkey not matching the two usual forms
   let checkScripts = async function (transaction) {
     // Check unlock script of inputs
-    transaction.each(transaction.inputs, input => {
+    transaction.forEach(transaction.inputs, input => {
       // PUB [PUBLIC_KEY] SIG [SIGNATURE]
       let parts = input.unlockScript.split(' ');
       if (parts.length !== 4 || parts[0] !== 'PUB' || parts[2] !== 'SIG') {
         throw Error('Unlock script must have format PUB [PUBLIC_KEY] SIG [SIGNATURE]');
       }
     });
-    // Check lock script
-    transaction.each(transaction.outputs, output => {
-      // ADDRESS [ADDRESS]
-      let parts = output.lockScript.split(' ');
-      if (parts.length !== 2 || parts[0] !== 'ADDRESS') {
-        throw Error('Lock script must have format ADDRESS [ADDRESS]');
-      }
-    });
+    await checkLockScript(transaction);
   };
 
   // 8. Reject if we already have matching tx in the pool, or in a block in the main branch
   let checkInPoolOrBlock = async function (transaction) {
-    transaction.hash = utils.hash(transaction.binary);
     let found = await exports.findByHash(transaction.hash);
     if (found) {
       throw Error('Transaction found in pool or block');
@@ -195,7 +179,7 @@ module.exports = exports = ({ db, utils }) => {
         .whereNull(TABLE_NAME + '.index')
         .first();
       if (found) {
-        throw Error('Referenced output ' + input.hash + '#' + input.index + ' is found in other transaction');
+        throw Error('Referenced output ' + input.referencedOutputHash + '#' + input.referencedOutputIndex + ' is found in other transaction');
       }
     });
   };
@@ -236,7 +220,7 @@ module.exports = exports = ({ db, utils }) => {
   let checkInputValue = async function (transaction) {
     // Get the value of the referenced output into transaction (note coinbase)
     transaction.totalInput = 0;
-    transaction.inputs.each((input) => {
+    transaction.inputs.forEach((input) => {
       // Check input value is integer
       if (!Number.isInteger(input.referencedOutput.value)) {
         throw Error('Inout value must be a integer');
@@ -269,7 +253,7 @@ module.exports = exports = ({ db, utils }) => {
     // Create message without unlock script
     let message = toBinary(transaction, true);
     // TODO: Later after determine the signature format
-    transaction.inputs.each(input => {
+    transaction.inputs.forEach(input => {
       let lockScript = input.referencedOutput.lockScript;
       let unlockScript = input.unlockScript;
       let parts = unlockScript.split(' ');
@@ -294,23 +278,24 @@ module.exports = exports = ({ db, utils }) => {
     await db(TABLE_NAME).insert({
       hash: transaction.hash,
       version: transaction.version,
+      fee: transaction.fee,
       blockHash: null,
       index: null
     });
     // Add inputs/ouputs
-    await Promise.each(transaction.inputs, async input => {
+    await Promise.each(transaction.inputs, async (input, index) => {
       await db(INPUT_TABLE_NAME).insert({
         transactionHash: transaction.hash,
-        index: input.index,
+        index: index,
         referencedOutputHash: input.referencedOutputHash,
         referencedOutputIndex: input.referencedOutputIndex,
         unlockScript: input.unlockScript
       });
     });
-    await Promise.each(transaction.outputs, async output => {
+    await Promise.each(transaction.outputs, async (output, index) => {
       await db(OUTPUT_TABLE_NAME).insert({
         transactionHash: transaction.hash,
-        index: output.index,
+        index: index,
         value: output.value,
         lockScript: output.lockScript
       });
@@ -333,7 +318,7 @@ module.exports = exports = ({ db, utils }) => {
   // Validate transaction (can unlock the unspent output)
   let add = async function (transaction) {
     // Verify transaction
-    return Promise.each([
+    await Promise.each([
       checkVersion,
       checkInputOutputNotEmpty,
       checkSizeInBytes,
@@ -350,7 +335,28 @@ module.exports = exports = ({ db, utils }) => {
       addToWalletIfMine,
       relayToPeer
     ], step => step(transaction));
+    return transaction;
   };
 
-  return { findByHash, add, toBinary, fromBinary };
+  // For block check
+  let check2To4 = async function(transaction) {
+    await Promise.each([
+      checkInputOutputNotEmpty,
+      checkSizeInBytes,
+      checkOutputValue
+    ], step => step(transaction));
+    return transaction;
+  };
+
+  // Add coinbase transaction
+  let addCoinbase = async function (transaction) {
+    transaction.fee = 0;
+    await Promise.each([
+      checkLockScript,
+      addToTransactionPool
+    ], step => step(transaction));
+    return transaction;
+  };
+
+  return { findByHash, add, addCoinbase, toBinary, fromBinary, check2To4, addToBlock };
 };
