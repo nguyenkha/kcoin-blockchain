@@ -1,41 +1,16 @@
 const crypto = require('crypto');
 const _ = require('lodash');
 const bitInt = require('big-integer');
+const ursa = require('ursa');
+
+const HASH_ALGORITHM = 'sha256';
 
 module.exports = exports = () => {
   // SHA256 hash
   let hash = function (data) {
-    let hash = crypto.createHash('sha256');
+    let hash = crypto.createHash(HASH_ALGORITHM);
     hash.update(data);
     return hash.digest();
-  };
-
-  // Double hash run
-  let doubleHash = function (data) {
-    return exports.hash(exports.hash(data));
-  };
-
-  // Generate merkel root
-  let generateMarkelRoot = function (hashes) {
-    // No node
-    if (hashes.length == 0) {
-      throw Error('Merkel tree must have at least one node');
-    }
-    // Odd number of nodes
-    if (hashes.length % 2 == 1) {
-      // Add one more
-      hashes = _.concat(hashes, hashes[hashes.length - 1]);
-    } 
-    // Group by two
-    let newHashes = [];
-    for (let i = 0; i < hashes.length; i = i + 2) {
-      newHashes.push(exports.doubleHash(Buffer.concat([hashes[i], hashes[i + 1]])));
-    }
-    // Final
-    if (newHashes.length == 1) {
-      return newHashes[0]; 
-    }
-    return exports.generateMarkelRoot(newHashes);
   };
 
   // Convert hex to big int
@@ -43,5 +18,43 @@ module.exports = exports = () => {
     return bitInt(hex, 16);
   };
 
-  return { hash, doubleHash, generateMarkelRoot, hexToBigInt };
+  let generateKey = function () {
+    // Same as openssl genrsa -out key-name.pem <modulusBits>
+    return ursa.generatePrivateKey(1024, 65537);
+  };
+
+  let verify = function (message, publicKeyHex, signatureHex) {
+    // Create public key form hex
+    let publicKey = ursa.createPublicKey(publicKeyHex, 'hex');
+    // Create verifier
+    let verifier = ursa.createVerifier(HASH_ALGORITHM);
+    // Push message to verifier
+    verifier.update(message);
+    // Check with public key and signature
+    return verifier.verify(publicKey, signatureHex, 'hex');
+  };
+
+  let sign = function (message, privateKeyHex) {
+    // Create private key form hex
+    let privateKey = ursa.createPrivateKey(privateKeyHex, 'hex');
+    // Create signer
+    let verifier = ursa.createSigner(HASH_ALGORITHM);
+    // Push message to verifier
+    verifier.update(message);
+    // Sign
+    return verifier.sign(privateKey, 'hex');
+  };
+
+  let generateAddress = function () {
+    let privateKey = generateKey();
+    let publicKey = privateKey.toPublicPem();
+    return {
+      privateKey: privateKey.toPrivatePem('hex'),
+      publicKey: publicKey.toString('hex'),
+      // Address is hash of public key
+      address: hash(publicKey)
+    };
+  };
+
+  return { hash, hexToBigInt };
 };

@@ -17,6 +17,7 @@
     "lodash": "^4.17.4",
     "pg": "^7.4.0",
     "restify": "^6.3.4",
+    "ursa": "^0.9.4",
     "ws": "^3.3.1"
   },
   "devDependencies": {

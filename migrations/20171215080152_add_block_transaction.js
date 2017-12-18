@@ -9,14 +9,12 @@ exports.up = async function(knex) {
     t.integer('version').unsigned().notNullable();
     // Null for genesis block, no need to reference, may be orphan
     t.string('prevBlockHash', 32);
-    // Merkle root hash of all transaction
-    t.string('merkleRootHash', 32).notNullable();
+    // Hash of all transaction
+    t.string('transactionsHash', 32).notNullable();
     // Timestamp that block was generated, unsigned
     t.integer('time').unsigned().notNullable();
     // Nonce to generate block has with difficulty
     t.integer('nonce').unsigned().notNullable();
-    // Type: 0 - Side branch, 1 - Main chain, -1 - Orphan
-    t.integer('type').notNullable();
   });
 
   // Transaction
@@ -25,12 +23,10 @@ exports.up = async function(knex) {
     t.string('hash', 32).primary();
     // Version, 1
     t.integer('version').unsigned().notNullable();
-    // Total input
-    t.integer('totalInput').notNullable();
-    // Total output
-    t.integer('totalOutput').notNullable();
-    // Type: 0 - Pool, 1 - Main chain, -1 - Orphan
-    t.integer('type').notNullable();
+    // Hash of block (main branch), null if in pool
+    t.string('blockHash', 32).references('blocks.hash');
+    // Index of transaction in block (main branch), null if in pool
+    t.integer('index').unsigned();
   });
 
   // Transaction input
@@ -40,7 +36,7 @@ exports.up = async function(knex) {
     // Input index
     t.integer('index').unsigned().notNullable();
     t.primary(['transactionHash', 'index']);
-    // Referenced output transaction, no need to reference, may be orphan
+    // Referenced output transaction, no need to reference
     t.string('referencedOutputHash', 32).notNullable();
     // Referenced output transaction index
     t.integer('referencedOutputIndex').notNullable();
@@ -60,20 +56,11 @@ exports.up = async function(knex) {
     // Lock script
     t.text('lockScript').notNullable();
   });
-  
-  // Transactions in block, if not, transation is waiting to be confirmed
-  await knex.schema.createTable('block_transactions', t => {
-    // Primary key
-    t.string('blockHash', 32).notNullable().references('blocks.hash');
-    t.string('transctionHash', 32).notNullable().references('transactions.hash');
-    t.primary(['blockHash', 'transctionHash']);
-  });
 };
 
 exports.down = async function(knex) {
   await knex.schema.dropTable('transaction_inputs');
   await knex.schema.dropTable('transaction_outputs');
-  await knex.schema.dropTable('block_transactions');
   await knex.schema.dropTable('blocks');
   await knex.schema.dropTable('transactions');
 };

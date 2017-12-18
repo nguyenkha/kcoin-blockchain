@@ -8,6 +8,8 @@ This project is a **VERY SIMPLE** implementation of Bitcoin blockchain protocol 
 
 * Bitcoin protocol rule: [https://en.bitcoin.it/wiki/Protocol_rules](https://en.bitcoin.it/wiki/Protocol_rules)
 
+* Dumbcoin - An educational python implementation of a bitcoin-like blockchain: [https://github.com/julienr/ipynb_playground/blob/master/bitcoin/dumbcoin/dumbcoin.ipynb](https://github.com/julienr/ipynb_playground/blob/master/bitcoin/dumbcoin/dumbcoin.ipynb)
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details
