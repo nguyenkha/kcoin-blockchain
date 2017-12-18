@@ -3,7 +3,7 @@ const errors = require('restify-errors');
 const wrap = require('express-async-wrap');
 const _ = require('lodash');
 
-module.exports = exports = ({ blocks, transactions, miner, utils, init }) => {
+module.exports = exports = ({ blocks, transactions, miner, utils }) => {
   const app = restify.createServer();
   // Setup body parser and query parser
   app.use(restify.plugins.queryParser({
@@ -23,24 +23,25 @@ module.exports = exports = ({ blocks, transactions, miner, utils, init }) => {
   // Init
   app.get('/init', wrap(async function (req, res) {
     // Check genesis block exist
-    let height = blocks.getCurrentHeight();
+    let height = await blocks.getCurrentHeight();
     if (height === -1) {
-      // Generate add address
-      let addressWithKeys = utils.generateAddress();
-      // Generate genesis block
-      let genesisBlock = miner.generateBlock('0'.repeat(32), 'KCOIN BLOCKCHAIN API BY KHA DO', [
-        {
-          value: blocks.FIXED_REWARD,
-          lockScript: 'ADDRESS ' + addressWithKeys.address
-        }
-      ], []);
-      // Add this block to main branch
       try {
-        await addToMainBranch(genesisBlock);
+        // Generate add address
+        let addressWithKeys = utils.generateAddress();
+        // Generate genesis block
+        let genesisBlock = miner.generateBlock('0'.repeat(64), 'KCOIN BLOCKCHAIN BY KHA DO', [
+          {
+            value: blocks.FIXED_REWARD,
+            lockScript: 'ADDRESS ' + addressWithKeys.address
+          }
+        ], []);
+
+        // Add this block to main branch
+        await blocks.add(genesisBlock);
         res.send(200, addressWithKeys);
       } catch (err) {
         res.send(400, {
-          error: err.message
+          error: err.stack
         });
       }
     } else {
@@ -76,7 +77,7 @@ module.exports = exports = ({ blocks, transactions, miner, utils, init }) => {
     let id = req.params.id;
     let block;
     // Hash
-    if (id.length == 32) {
+    if (id.length == 64) {
       block = await blocks.findByHash(id);
     } else {
       // Height in main chain

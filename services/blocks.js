@@ -1,12 +1,14 @@
 const _ = require('lodash');
 const Promise = require('bluebird');
+const bigInt = require('big-integer');
 
-const FIXED_DIFFICULTY = 5;
+// System difficulty
+const FIXED_DIFFICULTY = 2;
 
 // Reward for each block
 const FIXED_REWARD = 281190;
 
-module.exports = exports = ({ db, transactions }) => {
+module.exports = exports = ({ db, transactions, utils }) => {
   const TABLE_NAME = 'blocks';
 
   // Find one block by its hash
@@ -22,7 +24,7 @@ module.exports = exports = ({ db, transactions }) => {
 
   // Get the current height
   let getCurrentHeight = async function () {
-    let max = db(TABLE_NAME).max('height AS max').first()['max'];
+    let max = (await db(TABLE_NAME).max('height AS max').first())['max'];
     if (Number.isInteger(max)) {
       return max;
     }
@@ -30,8 +32,8 @@ module.exports = exports = ({ db, transactions }) => {
   };
 
   // Transactions to binary
-  let getTransactionsBinary = function (transactions) {
-    return Buffer.concat(_.sortBy(block.transactions, 'index').map(transaction => transactions.toBinary));
+  let getTransactionsBinary = function (block) {
+    return Buffer.concat(block.transactions.map(transactions.toBinary));
   };
 
   // Only for hash
@@ -39,7 +41,7 @@ module.exports = exports = ({ db, transactions }) => {
     // Version
     let version = Buffer.alloc(4);
     version.writeUInt32BE(block.version);
-    // Previous block has
+    // Previous block hash
     let previousBlockHash = Buffer.from(block.previousBlockHash, 'hex');
     // Timestamp
     let timestamp = Buffer.alloc(4);
@@ -53,12 +55,12 @@ module.exports = exports = ({ db, transactions }) => {
     let difficulty = Buffer.alloc(4);
     difficulty.writeUInt32BE(block.difficulty);
     // Binary format of transaction
-    let transactionsBinary = getTransactionsBinary(block.transactions);
+    let transactionsBinary = getTransactionsBinary(block);
     // Hash of all transactiion
     let transactionsHash = utils.hash(transactionsBinary);
     // Always zero
     transactionCount.writeUInt32BE(0);
-    return Buffer.concat([ version, previousBlockHash, transactionsHash, timestamp, difficulty, nounce, transactionCount ]);
+    return Buffer.concat([ version, previousBlockHash, transactionsHash, timestamp, difficulty, nonce, transactionCount ]);
   };
 
   let calculateHash = function (block) {
@@ -74,8 +76,8 @@ module.exports = exports = ({ db, transactions }) => {
 
   // 2. Reject if duplicate of block we have in any of the three categories
   let checkExisted = async function (block) {
-    block.hash = calculateHash(toHeaderBinary(block));
-    let found = findByHash(hash);
+    block.hash = calculateHash(block).toString('hex');
+    let found = await findByHash(block.hash);
     if (found) {
       throw Error('Block existed');
     }
@@ -109,8 +111,8 @@ module.exports = exports = ({ db, transactions }) => {
           throw Error('Coinbase transaction can only have 1 input');
         }
         let input = transaction.inputs[0];
-        let hashValue = utils.hexToBigInt(input.referencedOutputHash);
-        if (hashValue.compare(bigInt.zero) === 0) {
+        let hashValue = utils.hexToBigInt(input.referencedOutputHash);;
+        if (hashValue.compare(bigInt.zero) !== 0) {
           throw Error('Coinbase transaction must have referenced output hash = 0');
         }
         if (input.referencedOutputIndex !== -1) {
@@ -132,7 +134,7 @@ module.exports = exports = ({ db, transactions }) => {
 
   // 7. For each transaction, apply "tx" checks 2-4
   let checkTransactions2To4 = async function (block) {
-    await Promise.each(blocks.transactions, transactions.check2To4);
+    await Promise.each(block.transactions, transactions.check2To4);
   };
 
   // 8. For the coinbase (first) transaction, scriptSig length must be 2-100
@@ -143,7 +145,7 @@ module.exports = exports = ({ db, transactions }) => {
 
   // 10. Verify Merkle hash
   let checkTransactionsHash = async function (block) {
-    if (block.transactionsHash !== utils.hash(getTransactionsBinary(block.transactions).toString('hex'))) {
+    if (block.transactionsHash !== utils.hash(getTransactionsBinary(block)).toString('hex')) {
        throw Error('Transactions hash does not match');
     }
   };
@@ -151,16 +153,19 @@ module.exports = exports = ({ db, transactions }) => {
   // 11. Check if prev block (matching prev hash) is in main branch or side branches. If not, add this to orphan blocks, then query peer we got this from for 1st missing orphan block in prev chain; done with block
   // => Simply check the block append to main chain
   let checkLatestBlock = async function (block) {
-    let height = getCurrentHeight();
-    let latestBlock = findByHeight(height);
-    if (latestBlock.hash !== block.previousBlockHash) {
-      throw Error('Block must append main branch');
-    }
+    let height = await getCurrentHeight();
+    // Don't check if no genesis block
+    if (height != -1) {
+      let latestBlock = findByHeight(height);
+      if (latestBlock.hash !== block.previousBlockHash) {
+        throw Error('Block must append main branch');
+      }
+    } 
   };
 
   // 12. Check that nBits value matches the difficulty rules
   let checkDifficultyWithSystem = async function (block) {
-    if (block.difficulty < FIXED_DIFFICULTY) {
+    if (!block.difficulty || block.difficulty < FIXED_DIFFICULTY) {
       throw Error('Block difficulty must be equal or larger than system ' + FIXED_DIFFICULTY);
     };
   };
@@ -176,7 +181,7 @@ module.exports = exports = ({ db, transactions }) => {
     // Assume all transactions is taken from the pool
     // 1. For all but the coinbase transaction, apply the following:...
     // Just check transactions are in pool except coinbase
-    let transactionsInPool = await transactions.findByHashes(block.transactions.map(t => utils.hash(transactions.toBinary(t))));
+    let transactionsInPool = await transactions.findByHashes(block.transactions.map(t => utils.hash(transactions.toBinary(t)).toString('hex')));
     // Except coinbase
     if (transactionsInPool.length != block.transactions.length - 1) {
       throw Error('Some transactions not found in pool');
@@ -184,7 +189,7 @@ module.exports = exports = ({ db, transactions }) => {
     // 2. Reject if coinbase value > sum of block creation fee and transaction fees
     // Calculate fee
     let totalFee = _.sumBy(transactionsInPool, 'fee');
-    let coinbase = blocks.transactions[0];
+    let coinbase = block.transactions[0];
     let totalValue = _.sumBy(coinbase.outputs, 'value');
     if (totalValue > totalFee + FIXED_REWARD) {
       throw Error('Coinbase transaction cannot larger than reward + fee');
@@ -193,7 +198,7 @@ module.exports = exports = ({ db, transactions }) => {
     // Add coinbase to array for add to block
     transactionsInPool.unshift(await transactions.findByHash(coinbase.hash));
     // Save block to database
-    let currentHeight = getCurrentHeight();
+    let currentHeight = await getCurrentHeight();
     await db(TABLE_NAME).insert({
       height: currentHeight + 1,
       hash: block.hash,
@@ -247,5 +252,5 @@ module.exports = exports = ({ db, transactions }) => {
     return block;
   };
 
-  return { findByHash, findByHeight, getCurrentHeight, add, FIXED_DIFFICULTY, FIXED_REWARD, addToMainBranch };
+  return { findByHash, findByHeight, getCurrentHeight, checkDifficulty, toHeaderBinary, calculateHash, getTransactionsBinary, add, FIXED_DIFFICULTY, FIXED_REWARD };
 };

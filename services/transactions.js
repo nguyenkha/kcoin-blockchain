@@ -1,5 +1,5 @@
 const Promise = require('bluebird');
-const bitInt = require('big-integer');
+const bigInt = require('big-integer');
 const _ = require('lodash');
 
 module.exports = exports = ({ db, utils }) => {
@@ -91,7 +91,7 @@ module.exports = exports = ({ db, utils }) => {
   // 3. Size in bytes <= MAX_BLOCK_SIZE
   let checkSizeInBytes = async function (transaction) {
     transaction.binary = toBinary(transaction);
-    transaction.hash = utils.hash(transaction.binary);
+    transaction.hash = utils.hash(transaction.binary).toString('hex');
     if (transaction.binary.length > MAX_SIZE) {
       throw Error('Transaction size > ' + (MAX_SIZE / 1024) + 'kB');
     }
@@ -133,7 +133,7 @@ module.exports = exports = ({ db, utils }) => {
 
   let checkLockScript = async function (transaction) {
     // Check lock script
-    transaction.forEach(transaction.outputs, output => {
+    transaction.outputs.forEach(output => {
       // ADDRESS [ADDRESS]
       let parts = output.lockScript.split(' ');
       if (parts.length !== 2 || parts[0] !== 'ADDRESS') {
@@ -358,5 +358,5 @@ module.exports = exports = ({ db, utils }) => {
     return transaction;
   };
 
-  return { findByHash, add, addCoinbase, toBinary, fromBinary, check2To4, addToBlock };
+  return { findByHash, findByHashes, add, addCoinbase, toBinary, check2To4, addToBlock };
 };

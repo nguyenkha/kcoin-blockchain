@@ -52,9 +52,9 @@ module.exports = exports = () => {
       privateKey: privateKey.toPrivatePem('hex'),
       publicKey: publicKey.toString('hex'),
       // Address is hash of public key
-      address: hash(publicKey)
+      address: hash(publicKey).toString('hex')
     };
   };
 
-  return { hash, hexToBigInt };
+  return { hash, hexToBigInt, generateAddress };
 };
