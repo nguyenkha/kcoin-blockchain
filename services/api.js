@@ -77,11 +77,11 @@ module.exports = exports = ({ blocks, transactions, miner, utils }) => {
     let id = req.params.id;
     let block;
     // Hash
-    if (id.length == 64) {
+    if (id.length === 64) {
       block = await blocks.findByHash(id);
     } else {
       // Height in main chain
-      let height = parseInt(id.height);
+      let height = parseInt(id);
       // TODO: Check height is number
       block = await blocks.findByHeight(height);
     }
