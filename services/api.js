@@ -126,6 +126,11 @@ module.exports = exports = ({ blocks, transactions, miner, utils }) => {
     });
   }));
 
+  // Create address
+  app.get('/generate-address', wrap(async function (req, res) {
+    res.send(200, utils.generateAddress());
+  }));
+
   app.on('restifyError', function(req, res, err, cb) {
     console.log(err);
     return cb();
