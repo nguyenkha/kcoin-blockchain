@@ -3,6 +3,7 @@ const _ = require('lodash');
 
 module.exports = exports = ({ blocks, transactions, utils }) => {
   let generateBlock = async function (previousBlockHash, message, outputs, transactionList) {
+    console.log('Started to generate new block...');
     let block = {};
     block.version = 1;
     block.previousBlockHash = previousBlockHash;
@@ -27,18 +28,17 @@ module.exports = exports = ({ blocks, transactions, utils }) => {
     for (;;) {
       block.hash = blocks.calculateHash(block).toString('hex');
 
-      console.log('Generating block with nonce:', block.nonce, ' - hash:', block.hash);
-      
       let prefix = '0'.repeat(block.difficulty);
       if (block.hash.toString('hex').indexOf(prefix) !== 0) {
         block.nonce++;
       } else {
         break;
       }
-
+      
       // Delay 0.01 second for other thing to run
       await Promise.delay(10);
     }
+    console.log('Generated block ' + block.hash + ' with nonce:', block.nonce, ' - hash:', block.hash);
     return block;
   };
 
