@@ -41,7 +41,7 @@ module.exports = exports = ({ blocks, transactions, miner, utils, events }) => {
           let genesisBlock = await miner.generateBlock('0'.repeat(64), 'KCOIN BLOCKCHAIN BY KHA DO @ JAPAN DEC 2017', [
             {
               value: blocks.FIXED_REWARD,
-              lockScript: 'ADDRESS ' + addressWithKeys.address
+              lockScript: 'ADD ' + addressWithKeys.address
             }
           ], []);
 

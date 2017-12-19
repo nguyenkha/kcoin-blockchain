@@ -172,10 +172,10 @@ module.exports = exports = ({ db, utils, events }) => {
   let checkLockScript = async function (transaction) {
     // Check lock script
     transaction.outputs.forEach(output => {
-      // ADDRESS [ADDRESS]
+      // ADD [ADDRESS]
       let parts = output.lockScript.split(' ');
-      if (parts.length !== 2 || parts[0] !== 'ADDRESS') {
-        throw Error('Lock script must have format ADDRESS [ADDRESS]');
+      if (parts.length !== 2 || parts[0] !== 'ADD') {
+        throw Error('Lock script must have format ADD [ADDRESS]');
       }
     });
   }; 
