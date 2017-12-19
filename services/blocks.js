@@ -3,13 +3,13 @@ const Promise = require('bluebird');
 const bigInt = require('big-integer');
 
 // System difficulty
-const FIXED_DIFFICULTY = 3;
+const FIXED_DIFFICULTY = 4;
 
 // Reward for each block
 const FIXED_REWARD = 281190;
 
 // Max transactions in 1 block
-const MAX_TRANSACTIONS_PER_BLOCK = 10;
+const MAX_TRANSACTIONS_PER_BLOCK = 50;
 
 module.exports = exports = ({ db, transactions, utils, events }) => {
   const TABLE_NAME = 'blocks';
