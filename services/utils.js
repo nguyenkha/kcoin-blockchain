@@ -25,7 +25,7 @@ module.exports = exports = () => {
 
   let verify = function (message, publicKeyHex, signatureHex) {
     // Create public key form hex
-    let publicKey = ursa.createPublicKey(publicKeyHex, 'hex');
+    let publicKey = ursa.createPublicKey(Buffer.from(publicKeyHex, 'hex'));
     // Create verifier
     let verifier = ursa.createVerifier(HASH_ALGORITHM);
     // Push message to verifier
@@ -36,13 +36,13 @@ module.exports = exports = () => {
 
   let sign = function (message, privateKeyHex) {
     // Create private key form hex
-    let privateKey = ursa.createPrivateKey(privateKeyHex, 'hex');
+    let privateKey = ursa.createPrivateKey(Buffer.from(privateKeyHex, 'hex'));
     // Create signer
-    let verifier = ursa.createSigner(HASH_ALGORITHM);
+    let signer = ursa.createSigner(HASH_ALGORITHM);
     // Push message to verifier
-    verifier.update(message);
+    signer.update(message);
     // Sign
-    return verifier.sign(privateKey, 'hex');
+    return signer.sign(privateKey, 'hex');
   };
 
   let generateAddress = function () {
@@ -56,5 +56,7 @@ module.exports = exports = () => {
     };
   };
 
-  return { hash, hexToBigInt, generateAddress };
+  require('fs').writeFileSync('key2.json', JSON.stringify(generateAddress()));
+
+  return { hash, hexToBigInt, generateAddress, verify, sign };
 };

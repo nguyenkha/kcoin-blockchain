@@ -63,15 +63,16 @@ module.exports = exports = ({ blocks, transactions, miner, utils }) => {
   }));
 
   // Add new block. TODO: Add WS, Discard alternative brand block has no news
-  app.post('/blocks', wrap(async function (req, res) {
-    // Validate and add block into database
-    try {
-      let block = await blocks.add(req.body);
-      res.send(200, block.cache);
-    } catch (err) {
-      throw new errors.InvalidContentError(err.message);
-    }
-  }));
+  // Disabled, single mineer for simple
+  // app.post('/blocks', wrap(async function (req, res) {
+  //   // Validate and add block into database
+  //   try {
+  //     let block = await blocks.add(req.body);
+  //     res.send(200, block.cache);
+  //   } catch (err) {
+  //     throw new errors.InvalidContentError(err.message);
+  //   }
+  // }));
 
   // Get all block in main branch for genesis to newest. TODO: Pagination
   app.get('/blocks', wrap(async function (req, res) {

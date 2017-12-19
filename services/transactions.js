@@ -98,6 +98,17 @@ module.exports = exports = ({ db, utils }) => {
     return Buffer.concat([ version, inputCount, inputs, outputCount, outputs ]);
   };
 
+  // Sign transaction
+  let sign = function (transaction, keys) {
+    let message = toBinary(transaction, true);
+    transaction.inputs.forEach((input, index) => {
+      let key = keys[index];
+      let signature = utils.sign(message, key.privateKey);
+      // Genereate unlock script
+      input.unlockScript = 'PUB ' + key.publicKey + ' SIG ' + signature;
+    });
+  };
+
   // 1. Check syntactic correctness
   let checkVersion = async function (transaction) {
     if (transaction.version !== 1) {
@@ -175,7 +186,7 @@ module.exports = exports = ({ db, utils }) => {
   // 7. Reject "nonstandard" transactions: scriptSig doing anything other than pushing numbers on the stack, or scriptPubkey not matching the two usual forms
   let checkScripts = async function (transaction) {
     // Check unlock script of inputs
-    transaction.forEach(transaction.inputs, input => {
+    transaction.inputs.forEach(input => {
       // PUB [PUBLIC_KEY] SIG [SIGNATURE]
       let parts = input.unlockScript.split(' ');
       if (parts.length !== 4 || parts[0] !== 'PUB' || parts[2] !== 'SIG') {
@@ -187,7 +198,7 @@ module.exports = exports = ({ db, utils }) => {
 
   // 8. Reject if we already have matching tx in the pool, or in a block in the main branch
   let checkInPoolOrBlock = async function (transaction) {
-    let found = await exports.findByHash(transaction.hash);
+    let found = await findByHash(transaction.hash);
     if (found) {
       throw Error('Transaction found in pool or block');
     }
@@ -250,7 +261,7 @@ module.exports = exports = ({ db, utils }) => {
     transaction.inputs.forEach((input) => {
       // Check input value is integer
       if (!Number.isInteger(input.referencedOutput.value)) {
-        throw Error('Inout value must be a integer');
+        throw Error('Input value must be a integer');
       }
       // and in range
       if (input.referencedOutput.value >= MAX_UINT32) {
@@ -289,7 +300,7 @@ module.exports = exports = ({ db, utils }) => {
       parts = lockScript.split(' ');
       let address = parts[1];
       // Check address is hash of public key
-      if (utils.hash(publicKey) !== address) {
+      if (utils.hash(Buffer.from(publicKey, 'hex')).toString('hex') !== address) {
         throw Error('Address and public cannot match');
       }
       // Check signature with public key
@@ -388,5 +399,5 @@ module.exports = exports = ({ db, utils }) => {
     return transaction;
   };
 
-  return { findByHash, findByHashes, findByBlockHash, findUnconfirmed, add, addCoinbase, toBinary, check2To4, addToBlock };
+  return { findByHash, findByHashes, findByBlockHash, findUnconfirmed, add, addCoinbase, toBinary, check2To4, addToBlock, sign };
 };

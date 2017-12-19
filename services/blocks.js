@@ -3,7 +3,7 @@ const Promise = require('bluebird');
 const bigInt = require('big-integer');
 
 // System difficulty
-const FIXED_DIFFICULTY = 3;
+const FIXED_DIFFICULTY = 2;
 
 // Reward for each block
 const FIXED_REWARD = 281190;
@@ -171,7 +171,7 @@ module.exports = exports = ({ db, transactions, utils }) => {
     let height = await getCurrentHeight();
     // Don't check if no genesis block
     if (height != -1) {
-      let latestBlock = findByHeight(height);
+      let latestBlock = await findByHeight(height);
       if (latestBlock.hash !== block.previousBlockHash) {
         throw Error('Block must append main branch');
       }
