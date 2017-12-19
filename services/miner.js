@@ -46,6 +46,8 @@ module.exports = exports = ({ blocks, transactions, utils }) => {
   let run = async function () {
     // Try to get all unconfirm transactions
     let unconfirmedTransactions = await transactions.findUnconfirmed();
+    // Sort by fee from high to low
+    unconfirmedTransactions = _.sortBy(unconfirmedTransactions, t => -t.fee);
     // Calculate fee
     let totalFee = _.sumBy(unconfirmedTransactions, 'fee');
     // Get latest block
