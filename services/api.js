@@ -31,25 +31,24 @@ module.exports = exports = ({ blocks, transactions, miner, utils, events }) => {
     // Check genesis block exist
     let found = await blocks.findGenesis();
     if (!found) {
-      try {
         // Generate add address
-        let addressWithKeys = utils.generateAddress();
-        // Generate genesis block
-        let genesisBlock = await miner.generateBlock('0'.repeat(64), 'KCOIN BLOCKCHAIN BY KHA DO @ JAPAN DEC 2017', [
-          {
-            value: blocks.FIXED_REWARD,
-            lockScript: 'ADDRESS ' + addressWithKeys.address
-          }
-        ], []);
+      let addressWithKeys = utils.generateAddress();
+      res.send(200, addressWithKeys);
 
-        // Add this block to main branch
-        await blocks.add(genesisBlock);
-        res.send(200, addressWithKeys);
-      } catch (err) {
-        res.send(400, {
-          error: err.stack
-        });
-      }
+      setTimeout(function() {
+        (async function () {
+          // Generate genesis block
+          let genesisBlock = await miner.generateBlock('0'.repeat(64), 'KCOIN BLOCKCHAIN BY KHA DO @ JAPAN DEC 2017', [
+            {
+              value: blocks.FIXED_REWARD,
+              lockScript: 'ADDRESS ' + addressWithKeys.address
+            }
+          ], []);
+
+          // Add this block to main branch
+          await blocks.add(genesisBlock);
+        })().catch(console.log); 
+      }, 1000);
     } else {
       res.send(200, {
         message: 'Blockchain has already initialized'
@@ -172,7 +171,6 @@ module.exports = exports = ({ blocks, transactions, miner, utils, events }) => {
   // Add transaction
   events.on('transaction', async transaction => {
     let data = (await transactions.findByHash(transaction.hash)).cache;
-    
     wss.broadcast({
       type: 'transaction',
       data: data
@@ -181,7 +179,7 @@ module.exports = exports = ({ blocks, transactions, miner, utils, events }) => {
 
   // Add block
   events.on('block', async block => {
-    let data = (await blocks.findByHash(block.hash)).cache
+    let data = (await blocks.findByHash(block.hash)).cache;
     wss.broadcast({
       type: 'block',
       data: data
