@@ -1,5 +1,7 @@
+const Promise = require('bluebird');
+
 module.exports = exports = ({ blocks, transactions, utils }) => {
-  let generateBlock = function (previousBlockHash, message, outputs, transactionList) {
+  let generateBlock = async function (previousBlockHash, message, outputs, transactionList) {
     let block = {};
     block.version = 1;
     block.previousBlockHash = previousBlockHash;
@@ -23,13 +25,18 @@ module.exports = exports = ({ blocks, transactions, utils }) => {
     block.nonce = 0;
     for (;;) {
       block.hash = blocks.calculateHash(block).toString('hex');
-      console.log(block.hash);
+
+      console.log('Generating block with nonce:', block.nonce, ' - hash:', block.hash);
+      
       let prefix = '0'.repeat(block.difficulty);
       if (block.hash.toString('hex').indexOf(prefix) !== 0) {
         block.nonce++;
       } else {
         break;
       }
+
+      // Delay 0.01 second for other thing to run
+      await Promise.delay(10);
     }
     return block;
   };

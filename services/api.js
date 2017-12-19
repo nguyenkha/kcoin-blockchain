@@ -29,7 +29,7 @@ module.exports = exports = ({ blocks, transactions, miner, utils }) => {
         // Generate add address
         let addressWithKeys = utils.generateAddress();
         // Generate genesis block
-        let genesisBlock = miner.generateBlock('0'.repeat(64), 'KCOIN BLOCKCHAIN BY KHA DO', [
+        let genesisBlock = await miner.generateBlock('0'.repeat(64), 'KCOIN BLOCKCHAIN BY KHA DO @ JAPAN DEC 2017', [
           {
             value: blocks.FIXED_REWARD,
             lockScript: 'ADDRESS ' + addressWithKeys.address
@@ -56,7 +56,7 @@ module.exports = exports = ({ blocks, transactions, miner, utils }) => {
     // Validate and add transaction into database
     try {
       let transaction = await transactions.add(req.body);
-      res.send(200, transaction);
+      res.send(200, transaction.cache);
     } catch (err) {
       throw new errors.InvalidContentError(err.message);
     }
@@ -65,11 +65,19 @@ module.exports = exports = ({ blocks, transactions, miner, utils }) => {
   // Add new block. TODO: Add WS, Discard alternative brand block has no news
   app.post('/blocks', wrap(async function (req, res) {
     // Validate and add block into database
+    try {
+      let block = await blocks.add(req.body);
+      res.send(200, block.cache);
+    } catch (err) {
+      throw new errors.InvalidContentError(err.message);
+    }
   }));
 
-  // Get all block in main chain. TODO: Pagination
+  // Get all block in main branch for genesis to newest. TODO: Pagination
   app.get('/blocks', wrap(async function (req, res) {
     // Get blocks with pagingations limit, offset
+    let allBlocks = (await blocks.getAllBlocks()).map(b => b.cache);
+    res.send(200, allBlocks);
   }));
 
   // Get a block by hash or height in main chain
@@ -89,7 +97,7 @@ module.exports = exports = ({ blocks, transactions, miner, utils }) => {
       throw new errors.ResourceNotFoundError('Block not found');
     }
     // Format response
-    res.send(200, block);
+    res.send(200, block.cache);
   }));
 
   // Get a transaction by hash (and blocks which transaction was put in if any)
@@ -99,10 +107,8 @@ module.exports = exports = ({ blocks, transactions, miner, utils }) => {
     if (!transaction) {
       throw new errors.ResourceNotFoundError('Transaction not found');
     }
-    // Find block which transaction was put in (only return hash of block)
-    let blocksContainTransaction = await blocks.findAllByTransactionHash(transaction.hash);
     // Format response
-    res.send(200, transaction);
+    res.send(200, transaction.cache);
   }));
 
   // Get list of unconfirmed transactions. TODO: Sortable by time, date, Add WS for this

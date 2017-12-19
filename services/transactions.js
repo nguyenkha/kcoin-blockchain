@@ -21,12 +21,34 @@ module.exports = exports = ({ db, utils }) => {
     return db(TABLE_NAME).whereIn('hash', hashes);
   };
 
+  // Find by block hash
+  let findByBlockHash = async function (blockHash) {
+    return db(TABLE_NAME).whereIn('blockHash', blockHash).orderBy('index');
+  };
+
+  // Update for faster access
+  let updateCache = async function (hash) {
+    let transaction = await findByHash(hash);
+    if (!transaction) {
+      throw Error('Transaction not found');
+    }
+    let cache = _.pick(transaction, 'version');
+    cache.inputs = (await db(INPUT_TABLE_NAME).where('transactionHash', hash).orderBy('index')).map(input => {
+      return _.pick(input, 'referencedOutputHash', 'referencedOutputIndex', 'unlockScript');
+    });
+    cache.outputs = (await db(OUTPUT_TABLE_NAME).where('transactionHash', hash).orderBy('index')).map(output => {
+      return _.pick(output, 'value', 'lockScript');
+    });
+    await db(TABLE_NAME).where('hash', hash).update({ cache: JSON.stringify(cache) });
+  };
+
   // Update block
   let addToBlock = async function (hash, blockHash, index) {
     await db(TABLE_NAME).where('hash', hash).update({
       blockHash: blockHash,
       index: index
     });
+    await updateCache(hash);
   };
 
   // Convert a transaction to binary format for hashing or checking the size
@@ -280,7 +302,8 @@ module.exports = exports = ({ db, utils }) => {
       version: transaction.version,
       fee: transaction.fee,
       blockHash: null,
-      index: null
+      index: null,
+      cache: '{}'
     });
     // Add inputs/ouputs
     await Promise.each(transaction.inputs, async (input, index) => {
@@ -300,6 +323,8 @@ module.exports = exports = ({ db, utils }) => {
         lockScript: output.lockScript
       });
     });
+    // Update cache
+    await updateCache(transaction.hash);
   };
 
   // 18. Add to wallet if mine
@@ -358,5 +383,5 @@ module.exports = exports = ({ db, utils }) => {
     return transaction;
   };
 
-  return { findByHash, findByHashes, add, addCoinbase, toBinary, check2To4, addToBlock };
+  return { findByHash, findByHashes, findByBlockHash, add, addCoinbase, toBinary, check2To4, addToBlock };
 };

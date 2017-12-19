@@ -3,7 +3,7 @@ const Promise = require('bluebird');
 const bigInt = require('big-integer');
 
 // System difficulty
-const FIXED_DIFFICULTY = 2;
+const FIXED_DIFFICULTY = 3;
 
 // Reward for each block
 const FIXED_REWARD = 281190;
@@ -29,6 +29,11 @@ module.exports = exports = ({ db, transactions, utils }) => {
       return max;
     }
     return -1;
+  };
+
+  // Get all blocks from genesis to newest
+  let getAllBlocks = async function () {
+    return db(TABLE_NAME).orderBy('height');
   };
 
   // Transactions to binary
@@ -65,6 +70,16 @@ module.exports = exports = ({ db, transactions, utils }) => {
 
   let calculateHash = function (block) {
     return utils.hash(toHeaderBinary(block));
+  };
+
+  let updateCache = async function (hash) {
+    let block = await findByHash(hash);
+    if (!block) {
+      throw Error('Block not found');
+    }
+    let cache = _.pick(block, 'version', 'previousBlockHash', 'transactionsHash', 'timestamp', 'difficulty', 'nonce');
+    cache.transactions = (await transactions.findByBlockHash(hash)).map(t => t.cache);
+    await db(TABLE_NAME).where('hash', hash).update({ cache: JSON.stringify(cache) });
   };
 
   // 1. Check syntactic correctness
@@ -207,12 +222,15 @@ module.exports = exports = ({ db, transactions, utils }) => {
       transactionsHash: block.transactionsHash,
       timestamp: block.timestamp,
       nonce: block.nonce,
-      difficulty: block.difficulty
+      difficulty: block.difficulty,
+      cache: '{}'
     });
     // Add transactions to block, remove from pool
     await Promise.each(transactionsInPool, (t, i) => {
       return transactions.addToBlock(t.hash, block.hash, i);
     });
+
+    await updateCache(block.hash);
   };
 
   // 3. (If we have not rejected):
@@ -249,8 +267,8 @@ module.exports = exports = ({ db, transactions, utils }) => {
       addToWalletIfMine,
       relayToPeer
     ], step => step(block));
-    return block;
+    return findByHash(block.hash);
   };
 
-  return { findByHash, findByHeight, getCurrentHeight, checkDifficulty, toHeaderBinary, calculateHash, getTransactionsBinary, add, FIXED_DIFFICULTY, FIXED_REWARD };
+  return { findByHash, findByHeight, getCurrentHeight, getAllBlocks, checkDifficulty, toHeaderBinary, calculateHash, getTransactionsBinary, add, FIXED_DIFFICULTY, FIXED_REWARD };
 };

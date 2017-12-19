@@ -17,6 +17,8 @@ exports.up = async function(knex) {
     t.integer('nonce').unsigned().notNullable();
     // Difficulty apply for this block
     t.integer('difficulty').unsigned().notNullable();
+    // Cached, header & transactions object with input and output
+    t.jsonb('cache').notNullable();
     // DB timestamp
     t.dateTime('createdAt').defaultTo(knex.fn.now());
   });
@@ -33,6 +35,8 @@ exports.up = async function(knex) {
     t.string('blockHash', 64).references('blocks.hash');
     // Index of transaction in block (main branch), null if in pool
     t.integer('index').unsigned();
+    // Cached, cached transaction object with input and output
+    t.jsonb('cache').notNullable();
     // DB timestamp
     t.dateTime('createdAt').defaultTo(knex.fn.now());
   });
