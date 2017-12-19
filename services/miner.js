@@ -48,6 +48,8 @@ module.exports = exports = ({ blocks, transactions, utils }) => {
     let unconfirmedTransactions = await transactions.findUnconfirmed();
     // Sort by fee from high to low
     unconfirmedTransactions = _.sortBy(unconfirmedTransactions, t => -t.fee);
+    // Cut-off by 9 transactions + 1 coinbase
+    unconfirmedTransactions = unconfirmedTransactions.splice(0, blocks.MAX_TRANSACTIONS_PER_BLOCK - 1);
     // Calculate fee
     let totalFee = _.sumBy(unconfirmedTransactions, 'fee');
     // Get latest block

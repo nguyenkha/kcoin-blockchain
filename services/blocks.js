@@ -8,6 +8,9 @@ const FIXED_DIFFICULTY = 3;
 // Reward for each block
 const FIXED_REWARD = 281190;
 
+// Max transactions in 1 block
+const MAX_TRANSACTIONS_PER_BLOCK = 10;
+
 module.exports = exports = ({ db, transactions, utils }) => {
   const TABLE_NAME = 'blocks';
 
@@ -279,5 +282,5 @@ module.exports = exports = ({ db, transactions, utils }) => {
     return findByHash(block.hash);
   };
 
-  return { findByHash, findByHeight, getCurrentHeight, findLatest, findGenesis, getAllBlocks, checkDifficulty, toHeaderBinary, calculateHash, getTransactionsBinary, add, FIXED_DIFFICULTY, FIXED_REWARD };
+  return { findByHash, findByHeight, getCurrentHeight, findLatest, findGenesis, getAllBlocks, checkDifficulty, toHeaderBinary, calculateHash, getTransactionsBinary, add, FIXED_DIFFICULTY, FIXED_REWARD, MAX_TRANSACTIONS_PER_BLOCK };
 };
