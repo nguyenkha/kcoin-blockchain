@@ -3,7 +3,7 @@ const Promise = require('bluebird');
 const bigInt = require('big-integer');
 
 // System difficulty
-const FIXED_DIFFICULTY = 1;
+const FIXED_DIFFICULTY = 3;
 
 // Reward for each block
 const FIXED_REWARD = 281190;
