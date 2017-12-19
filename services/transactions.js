@@ -2,7 +2,7 @@ const Promise = require('bluebird');
 const bigInt = require('big-integer');
 const _ = require('lodash');
 
-module.exports = exports = ({ db, utils }) => {
+module.exports = exports = ({ db, utils, events }) => {
   const TABLE_NAME = 'transactions';
   const INPUT_TABLE_NAME = 'transaction_inputs';
   const OUTPUT_TABLE_NAME = 'transaction_outputs';
@@ -37,7 +37,7 @@ module.exports = exports = ({ db, utils }) => {
     if (!transaction) {
       throw Error('Transaction not found');
     }
-    let cache = _.pick(transaction, 'version');
+    let cache = _.pick(transaction, 'hash', 'version');
     cache.inputs = (await db(INPUT_TABLE_NAME).where('transactionHash', hash).orderBy('index')).map(input => {
       return _.pick(input, 'referencedOutputHash', 'referencedOutputIndex', 'unlockScript');
     });
@@ -351,6 +351,7 @@ module.exports = exports = ({ db, utils }) => {
   // 19. Relay transaction to peers
   let relayToPeer = async function (transaction) {
     // Use websocket to broadcast to all peer
+    events.emit('transaction', transaction);
   };
 
   // 20. For each orphan transaction that uses this one as one of its inputs, run all these steps(including this one) recursively on that orphan
@@ -376,7 +377,7 @@ module.exports = exports = ({ db, utils }) => {
       addToWalletIfMine,
       relayToPeer
     ], step => step(transaction));
-    return transaction;
+    return findByHash(transaction.hash);
   };
 
   // For block check
@@ -386,7 +387,7 @@ module.exports = exports = ({ db, utils }) => {
       checkSizeInBytes,
       checkOutputValue
     ], step => step(transaction));
-    return transaction;
+    return findByHash(transaction.hash);
   };
 
   // Add coinbase transaction
@@ -396,7 +397,7 @@ module.exports = exports = ({ db, utils }) => {
       checkLockScript,
       addToTransactionPool
     ], step => step(transaction));
-    return transaction;
+    return findByHash(transaction.hash);
   };
 
   return { findByHash, findByHashes, findByBlockHash, findUnconfirmed, add, addCoinbase, toBinary, check2To4, addToBlock, sign };

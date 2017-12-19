@@ -2,9 +2,15 @@ const restify = require('restify');
 const errors = require('restify-errors');
 const wrap = require('express-async-wrap');
 const _ = require('lodash');
+const WebSocket = require('ws');
 
-module.exports = exports = ({ blocks, transactions, miner, utils }) => {
+module.exports = exports = ({ blocks, transactions, miner, utils, events }) => {
+  // HTTP API server
   const app = restify.createServer();
+
+  // WS server
+  const wss = new WebSocket.Server({ server: app.server });
+
   // Setup body parser and query parser
   app.use(restify.plugins.queryParser({
     mapParams: true
@@ -153,6 +159,34 @@ module.exports = exports = ({ blocks, transactions, miner, utils }) => {
 
   process.on('SIGINT', gracefulShutdown);
   process.on('SIGTERM', gracefulShutdown);
+  
+  // Broadcast events
+  wss.broadcast = function broadcast(data) {
+    wss.clients.forEach(function each(client) {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(data));
+      }
+    });
+  };
+
+  // Add transaction
+  events.on('transaction', async transaction => {
+    let data = (await transactions.findByHash(transaction.hash)).cache;
+    
+    wss.broadcast({
+      type: 'transaction',
+      data: data
+    });
+  });
+
+  // Add block
+  events.on('block', async block => {
+    let data = (await blocks.findByHash(block.hash)).cache
+    wss.broadcast({
+      type: 'block',
+      data: data
+    });
+  });
 
   return app;
 };

@@ -3,7 +3,7 @@ const Promise = require('bluebird');
 const bigInt = require('big-integer');
 
 // System difficulty
-const FIXED_DIFFICULTY = 3;
+const FIXED_DIFFICULTY = 1;
 
 // Reward for each block
 const FIXED_REWARD = 281190;
@@ -11,7 +11,7 @@ const FIXED_REWARD = 281190;
 // Max transactions in 1 block
 const MAX_TRANSACTIONS_PER_BLOCK = 10;
 
-module.exports = exports = ({ db, transactions, utils }) => {
+module.exports = exports = ({ db, transactions, utils, events }) => {
   const TABLE_NAME = 'blocks';
 
   // Find one block by its hash
@@ -90,7 +90,7 @@ module.exports = exports = ({ db, transactions, utils }) => {
     if (!block) {
       throw Error('Block not found');
     }
-    let cache = _.pick(block, 'version', 'previousBlockHash', 'transactionsHash', 'timestamp', 'difficulty', 'nonce');
+    let cache = _.pick(block, 'hash', 'version', 'previousBlockHash', 'transactionsHash', 'timestamp', 'difficulty', 'nonce');
     cache.transactions = (await transactions.findByBlockHash(hash)).map(t => t.cache);
     await db(TABLE_NAME).where('hash', hash).update({ cache: JSON.stringify(cache) });
   };
@@ -259,6 +259,7 @@ module.exports = exports = ({ db, transactions, utils }) => {
   // 6. Relay block to our peers
   let relayToPeer = async function (block) {
     // Use websocket to broadcast to all peer
+    events.emit('block', block);
   };
 
   // 7. If we rejected, the block is not counted as part of the main branch
