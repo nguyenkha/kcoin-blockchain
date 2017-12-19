@@ -26,6 +26,11 @@ module.exports = exports = ({ db, utils }) => {
     return db(TABLE_NAME).whereIn('blockHash', blockHash).orderBy('index');
   };
 
+  // Find unconfirm transaction
+  let findUnconfirmed = async function () {
+    return db(TABLE_NAME).whereNull('blockHash').whereNull('index');
+  };
+
   // Update for faster access
   let updateCache = async function (hash) {
     let transaction = await findByHash(hash);
@@ -383,5 +388,5 @@ module.exports = exports = ({ db, utils }) => {
     return transaction;
   };
 
-  return { findByHash, findByHashes, findByBlockHash, add, addCoinbase, toBinary, check2To4, addToBlock };
+  return { findByHash, findByHashes, findByBlockHash, findUnconfirmed, add, addCoinbase, toBinary, check2To4, addToBlock };
 };

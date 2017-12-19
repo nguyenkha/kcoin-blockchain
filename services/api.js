@@ -113,8 +113,14 @@ module.exports = exports = ({ blocks, transactions, miner, utils }) => {
 
   // Get list of unconfirmed transactions. TODO: Sortable by time, date, Add WS for this
   app.get('/unconfirmed-transactions', wrap(async function (req, res) {
-
+    let unconfirmedTransactions = (await transactions.findUnconfirmed()).map(t => t.cache);
+    res.send(200, unconfirmedTransactions);
   }));
+
+  app.on('restifyError', function(req, res, err, cb) {
+    console.log(err);
+    return cb();
+  });
 
   const port = process.env.PORT || 5000;
 
@@ -122,6 +128,17 @@ module.exports = exports = ({ blocks, transactions, miner, utils }) => {
   app.listen(port)
 
   console.log('Server is listening on port', port);
+
+  // Graceful shutdown
+  let gracefulShutdown = () => {
+    console.log('Shutting down http server');
+    app.close(() => {
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGINT', gracefulShutdown);
+  process.on('SIGTERM', gracefulShutdown);
 
   return app;
 };
