@@ -1,6 +1,6 @@
 # KCoin blockchain reference implementation
 
-This project is a **VERY SIMPLE** implementation of Bitcoin blockchain protocol for demonstration of CTT522 Final project using Node.js, Restify, Knex with PostgreSQL database.
+This project is a **VERY SIMPLE** implementation of Bitcoin blockchain protocol (ignore P2P and multiple miners) for demonstration of CTT522 Final project using Node.js, Restify, Knex with PostgreSQL database. Vietnamese guide is available on wiki.
 
 ## Reference
 
