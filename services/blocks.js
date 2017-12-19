@@ -3,7 +3,7 @@ const Promise = require('bluebird');
 const bigInt = require('big-integer');
 
 // System difficulty
-const FIXED_DIFFICULTY = 2;
+const FIXED_DIFFICULTY = 4;
 
 // Reward for each block
 const FIXED_REWARD = 281190;
@@ -20,6 +20,16 @@ module.exports = exports = ({ db, transactions, utils }) => {
   let findByHeight = async function (height) {
     // Block with max height and created first
     return db(TABLE_NAME).where('height', height).first();
+  };
+  
+  // Find latest block
+  let findLatest = async function () {
+    return db(TABLE_NAME).orderBy('height', 'desc').first();
+  };
+
+  // Find genesis block
+  let findGenesis = async function () {
+    return db(TABLE_NAME).orderBy('height').first();
   };
 
   // Get the current height
@@ -168,10 +178,9 @@ module.exports = exports = ({ db, transactions, utils }) => {
   // 11. Check if prev block (matching prev hash) is in main branch or side branches. If not, add this to orphan blocks, then query peer we got this from for 1st missing orphan block in prev chain; done with block
   // => Simply check the block append to main chain
   let checkLatestBlock = async function (block) {
-    let height = await getCurrentHeight();
+    let latestBlock = await findLatest();
     // Don't check if no genesis block
-    if (height != -1) {
-      let latestBlock = await findByHeight(height);
+    if (latestBlock) {
       if (latestBlock.hash !== block.previousBlockHash) {
         throw Error('Block must append main branch');
       }
@@ -270,5 +279,5 @@ module.exports = exports = ({ db, transactions, utils }) => {
     return findByHash(block.hash);
   };
 
-  return { findByHash, findByHeight, getCurrentHeight, getAllBlocks, checkDifficulty, toHeaderBinary, calculateHash, getTransactionsBinary, add, FIXED_DIFFICULTY, FIXED_REWARD };
+  return { findByHash, findByHeight, getCurrentHeight, findLatest, findGenesis, getAllBlocks, checkDifficulty, toHeaderBinary, calculateHash, getTransactionsBinary, add, FIXED_DIFFICULTY, FIXED_REWARD };
 };

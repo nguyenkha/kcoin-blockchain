@@ -56,7 +56,5 @@ module.exports = exports = () => {
     };
   };
 
-  require('fs').writeFileSync('key2.json', JSON.stringify(generateAddress()));
-
   return { hash, hexToBigInt, generateAddress, verify, sign };
 };

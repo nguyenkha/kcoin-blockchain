@@ -23,8 +23,8 @@ module.exports = exports = ({ blocks, transactions, miner, utils }) => {
   // Init
   app.get('/init', wrap(async function (req, res) {
     // Check genesis block exist
-    let height = await blocks.getCurrentHeight();
-    if (height === -1) {
+    let found = await blocks.findGenesis();
+    if (!found) {
       try {
         // Generate add address
         let addressWithKeys = utils.generateAddress();
@@ -116,6 +116,14 @@ module.exports = exports = ({ blocks, transactions, miner, utils }) => {
   app.get('/unconfirmed-transactions', wrap(async function (req, res) {
     let unconfirmedTransactions = (await transactions.findUnconfirmed()).map(t => t.cache);
     res.send(200, unconfirmedTransactions);
+  }));
+
+  // Get difficulty, block reward
+  app.get('/info', wrap(async function (req, res) {
+    res.send(200, {
+      difficulty: blocks.FIXED_DIFFICULTY,
+      blockReward: blocks.FIXED_REWARD
+    });
   }));
 
   app.on('restifyError', function(req, res, err, cb) {

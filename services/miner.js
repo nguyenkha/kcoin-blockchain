@@ -1,4 +1,5 @@
 const Promise = require('bluebird');
+const _ = require('lodash');
 
 module.exports = exports = ({ blocks, transactions, utils }) => {
   let generateBlock = async function (previousBlockHash, message, outputs, transactionList) {
@@ -40,6 +41,33 @@ module.exports = exports = ({ blocks, transactions, utils }) => {
     }
     return block;
   };
+
+  // Auto run miner
+  let run = async function () {
+    // Try to get all unconfirm transactions
+    let unconfirmedTransactions = await transactions.findUnconfirmed();
+    // Calculate fee
+    let totalFee = _.sumBy(unconfirmedTransactions, 'fee');
+    // Get latest block
+    let latestBlock = await blocks.findLatest();
+    if (latestBlock) {
+      // Get default lock script from genesis block
+      let genesisBlock = await blocks.findGenesis();
+      // Put into block
+      let block = await generateBlock(latestBlock.hash, 'DATETIME ' + new Date().toString(), [
+        {
+          value: blocks.FIXED_REWARD + totalFee,
+          lockScript: genesisBlock.cache.transactions[0].outputs[0].lockScript
+        }
+      ], unconfirmedTransactions.map(t => t.cache));
+      await blocks.add(block);
+    }
+    await Promise.delay(100);
+    // Wait for 1 minutes
+    await run();
+  };
+
+  run();
 
   return { generateBlock };
 };
