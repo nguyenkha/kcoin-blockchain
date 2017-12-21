@@ -45,7 +45,7 @@ module.exports = exports = ({ blocks, transactions, utils }) => {
   // Auto run miner
   let run = async function () {
     // Wait for 1 minutes
-    await Promise.delay(5 * 60 * 1000);
+    await Promise.delay(10 * 60 * 1000);
     // Try to get all unconfirm transactions
     let unconfirmedTransactions = await transactions.findUnconfirmed();
     // Sort by fee from high to low
