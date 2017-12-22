@@ -18,7 +18,7 @@ module.exports = exports = ({ blocks, transactions, utils }) => {
       version: 1,
       inputs: [
         {
-          referencedOutputHash: '0'.repeat(32),
+          referencedOutputHash: '0'.repeat(64),
           referencedOutputIndex: -1,
           unlockScript: message
         }
