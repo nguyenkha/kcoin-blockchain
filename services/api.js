@@ -97,7 +97,19 @@ module.exports = exports = ({ blocks, transactions, miner, utils, events }) => {
   // Get all block in main branch for genesis to newest. TODO: Pagination
   app.get('/blocks', wrap(async function (req, res) {
     // Get blocks with pagingations limit, offset
-    let allBlocks = (await blocks.getAllBlocks()).map(b => b.cache);
+    let limit = parseInt(req.query.limit);
+    let offset = parseInt(req.query.offset);
+    // Default and maximum limit
+    if (!Number.isInteger(limit) || limit > 100 || limit < 1) {
+      limit = 100;
+    }
+    if (!Number.isInteger(offset) || offset < 0) {
+      offset = 0;
+    }
+    let allBlocks = (await blocks.getAll(limit, offset)).map(b => b.cache);
+    // Set X-Total-Count
+    let count = await blocks.countAll();
+    res.header('X-Total-Count', count.toString());
     res.send(200, allBlocks);
   }));
 

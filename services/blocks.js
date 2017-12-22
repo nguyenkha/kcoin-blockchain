@@ -45,8 +45,13 @@ module.exports = exports = ({ db, transactions, utils, events }) => {
   };
 
   // Get all blocks from genesis to newest
-  let getAllBlocks = async function () {
-    return db(TABLE_NAME).orderBy('height');
+  let getAll = async function (limit, offset) {
+    return db(TABLE_NAME).orderBy('height').limit(limit).offset(offset);
+  };
+
+  // Count all blocks
+  let countAll = async function () {
+    return (await db(TABLE_NAME).count('hash as count').first())['count'];
   };
 
   // Transactions to binary
@@ -283,5 +288,5 @@ module.exports = exports = ({ db, transactions, utils, events }) => {
     return findByHash(block.hash);
   };
 
-  return { findByHash, findByHeight, getCurrentHeight, findLatest, findGenesis, getAllBlocks, checkDifficulty, toHeaderBinary, calculateHash, getTransactionsBinary, add, FIXED_DIFFICULTY, FIXED_REWARD, MAX_TRANSACTIONS_PER_BLOCK };
+  return { findByHash, findByHeight, getCurrentHeight, findLatest, findGenesis, getAll, countAll, checkDifficulty, toHeaderBinary, calculateHash, getTransactionsBinary, add, FIXED_DIFFICULTY, FIXED_REWARD, MAX_TRANSACTIONS_PER_BLOCK };
 };
