@@ -2,6 +2,9 @@ const Promise = require('bluebird');
 const _ = require('lodash');
 
 module.exports = exports = ({ blocks, transactions, utils }) => {
+  // Block delay in seconds
+  const BLOCK_DELAY = process.env.BLOCK_DELAY || (10 * 60);
+
   let generateBlock = async function (previousBlockHash, message, outputs, transactionList) {
     console.log('Started to generate new block...');
     let block = {};
@@ -45,7 +48,7 @@ module.exports = exports = ({ blocks, transactions, utils }) => {
   // Auto run miner
   let run = async function () {
     // Wait for 1 minutes
-    await Promise.delay(10 * 60 * 1000);
+    await Promise.delay(BLOCK_DELAY * 1000);
     // Try to get all unconfirm transactions
     let unconfirmedTransactions = await transactions.findUnconfirmed();
     // Sort by fee from high to low

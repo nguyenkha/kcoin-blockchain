@@ -5,6 +5,8 @@ const _ = require('lodash');
 const WebSocket = require('ws');
 
 module.exports = exports = ({ blocks, transactions, miner, utils, events }) => {
+  const GENESIS_MESSAGE = process.env.GENESIS_MESSAGE || 'KCOIN BLOCKCHAIN BY KHA DO @ QUOINE JP DEC 2017';
+
   // HTTP API server
   const app = restify.createServer();
 
@@ -38,7 +40,7 @@ module.exports = exports = ({ blocks, transactions, miner, utils, events }) => {
       setTimeout(function() {
         (async function () {
           // Generate genesis block
-          let genesisBlock = await miner.generateBlock('0'.repeat(64), 'KCOIN BLOCKCHAIN BY KHA DO @ QUOINE JP DEC 2017', [
+          let genesisBlock = await miner.generateBlock('0'.repeat(64), GENESIS_MESSAGE, [
             {
               value: blocks.FIXED_REWARD,
               lockScript: 'ADD ' + addressWithKeys.address

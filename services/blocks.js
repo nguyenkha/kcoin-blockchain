@@ -2,17 +2,17 @@ const _ = require('lodash');
 const Promise = require('bluebird');
 const bigInt = require('big-integer');
 
-// System difficulty
-const FIXED_DIFFICULTY = 3;
-
-// Reward for each block
-const FIXED_REWARD = 281190;
-
-// Max transactions in 1 block
-const MAX_TRANSACTIONS_PER_BLOCK = 50;
 
 module.exports = exports = ({ db, transactions, utils, events }) => {
   const TABLE_NAME = 'blocks';
+  // System difficulty
+  const FIXED_DIFFICULTY = process.env.FIXED_DIFFICULTY || 3;
+  
+  // Reward for each block
+  const FIXED_REWARD = process.env.FIXED_REWARD || 281190;
+  
+  // Max transactions in 1 block
+  const MAX_TRANSACTIONS_PER_BLOCK = process.env.MAX_TRANSACTIONS_PER_BLOCK || 50;
 
   // Find one block by its hash
   let findByHash = async function (hash) {
