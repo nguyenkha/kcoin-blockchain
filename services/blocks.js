@@ -6,13 +6,13 @@ const bigInt = require('big-integer');
 module.exports = exports = ({ db, transactions, utils, events }) => {
   const TABLE_NAME = 'blocks';
   // System difficulty
-  const FIXED_DIFFICULTY = process.env.FIXED_DIFFICULTY || 3;
+  const FIXED_DIFFICULTY = parseInt(process.env.FIXED_DIFFICULTY) || 3;
   
   // Reward for each block
-  const FIXED_REWARD = process.env.FIXED_REWARD || 281190;
+  const FIXED_REWARD = parseInt(process.env.FIXED_REWARD) || 281190;
   
   // Max transactions in 1 block
-  const MAX_TRANSACTIONS_PER_BLOCK = process.env.MAX_TRANSACTIONS_PER_BLOCK || 50;
+  const MAX_TRANSACTIONS_PER_BLOCK = parseInt(process.env.MAX_TRANSACTIONS_PER_BLOCK) || 50;
 
   // Find one block by its hash
   let findByHash = async function (hash) {
