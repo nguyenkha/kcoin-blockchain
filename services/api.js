@@ -3,12 +3,25 @@ const errors = require('restify-errors');
 const wrap = require('express-async-wrap');
 const _ = require('lodash');
 const WebSocket = require('ws');
+const corsM = require('restify-cors-middleware');
 
 module.exports = exports = ({ blocks, transactions, miner, utils, events }) => {
   const GENESIS_MESSAGE = process.env.GENESIS_MESSAGE || 'KCOIN BLOCKCHAIN BY KHA DO @ QUOINE JP DEC 2017';
 
   // HTTP API server
   const app = restify.createServer();
+
+  // Config cors
+  const cors = corsM({
+    origins: process.env.CORS_ALLOW_ORIGINS ? process.env.CORS_ALLOW_ORIGINS.split(',') : [],
+    allowHeaders: ['Authorization', 'Content-Type'],
+    exposeHeaders: ['Content-Length', 'X-Total-Count'],
+    preflightMaxAge: 600
+  });
+
+  // CORS
+  app.pre(cors.preflight)
+  app.use(cors.actual);
 
   // WS server
   const wss = new WebSocket.Server({ server: app.server });
