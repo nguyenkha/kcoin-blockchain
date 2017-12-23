@@ -7,8 +7,9 @@ services:
     depends_on:
       - db
     environment:
-      # 3000 for UI port
-      CORS_ALLOW_ORIGINS: http://localhost:3000
+      # 3000 for UI app (docker)
+      # 8080 for UI app (webpack dev)
+      CORS_ALLOW_ORIGINS: http://localhost:3000,http://localhost:8080
       PORT: 5000
       DATABASE_URL: postgres://kcoin:@db:5432/kcoin
   db:
