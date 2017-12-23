@@ -45,8 +45,13 @@ module.exports = exports = ({ db, transactions, utils, events }) => {
   };
 
   // Get all blocks from genesis to newest
-  let getAll = async function (limit, offset) {
-    return db(TABLE_NAME).orderBy('height').limit(limit).offset(offset);
+  let getAll = async function (limit, offset, order) {
+    let query = db(TABLE_NAME).orderBy('height').limit(limit).offset(offset);
+    // DESC
+    if (order === -1) {
+      query.orderBy('height', 'desc');
+    }
+    return query;
   };
 
   // Count all blocks

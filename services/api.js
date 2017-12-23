@@ -106,7 +106,12 @@ module.exports = exports = ({ blocks, transactions, miner, utils, events }) => {
     if (!Number.isInteger(offset) || offset < 0) {
       offset = 0;
     }
-    let allBlocks = (await blocks.getAll(limit, offset)).map(b => b.cache);
+    // Order
+    let order = parseInt(req.query.order);
+    if (!Number.isInteger(order) || order !== 0 || order !== -1) {
+      order = 0;
+    }
+    let allBlocks = (await blocks.getAll(limit, offset, order)).map(b => b.cache);
     // Set X-Total-Count
     let count = await blocks.countAll();
     res.header('X-Total-Count', count.toString());
