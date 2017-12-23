@@ -108,7 +108,7 @@ module.exports = exports = ({ blocks, transactions, miner, utils, events }) => {
     }
     // Order
     let order = parseInt(req.query.order);
-    if (!Number.isInteger(order) || order !== 0 || order !== -1) {
+    if (!Number.isInteger(order)) {
       order = 0;
     }
     let allBlocks = (await blocks.getAll(limit, offset, order)).map(b => b.cache);
