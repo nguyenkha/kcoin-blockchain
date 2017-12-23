@@ -13,13 +13,13 @@ API is hosting at [https://api.kcoin.club](https://api.kcoin.club)
 2. Create database and API server
 
 ```
-docker-compose up
+$ docker-compose up
 ```
 
 3. Run database migrations
 
 ```
-docker-compose run --rm api yarn knex migrate:latest
+$ docker-compose run --rm api yarn knex migrate:latest
 ```
 
 4. Open URL [http://localhost:5000/init](http://localhost:5000/init) to init blockchain by creating genesis block. Remember to store the private key, public key and address of miner to create transactions.
