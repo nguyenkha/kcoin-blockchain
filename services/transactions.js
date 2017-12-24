@@ -230,7 +230,7 @@ module.exports = exports = ({ db, utils, events }) => {
 
   // 12. For each input, if the referenced output does not exist (e.g. never existed or has already been spent), reject this transaction
   let checkReferencedOutputExisted = async function (transaction) {
-    await Promise.each(transaction.inputs, async input => {
+    await Promise.each(transaction.inputs, async (input, i) => {
       // Existed
       let found = await db(OUTPUT_TABLE_NAME)
         .where('transactionHash', input.referencedOutputHash)
@@ -250,6 +250,11 @@ module.exports = exports = ({ db, utils, events }) => {
         .first();
       if (found) {
         throw Error('Referenced output was spent');
+      }
+      // Duplicated
+      found = _.find(transaction.inputs, (input2, j) => input2.referencedOutputHash === input.referencedOutputHash && input2.referencedOutputIndex === input.referencedOutputIndex && i !== j);
+      if (found) {
+        throw Error('Referenced output are spent on same transaction');
       }
     });
   };
