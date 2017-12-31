@@ -235,7 +235,7 @@ module.exports = exports = ({ db, utils, events }) => {
       let found = await db(OUTPUT_TABLE_NAME)
         .join(TABLE_NAME, 'hash', '=', 'transactionHash')
         .where('transactionHash', input.referencedOutputHash)
-        .where('index', input.referencedOutputIndex)
+        .where(OUTPUT_TABLE_NAME + '.index', input.referencedOutputIndex)
         // Confirmed
         .whereNotNull('blockHash')
         .first();
