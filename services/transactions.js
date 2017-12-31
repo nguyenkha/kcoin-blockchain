@@ -233,8 +233,11 @@ module.exports = exports = ({ db, utils, events }) => {
     await Promise.each(transaction.inputs, async (input, i) => {
       // Existed
       let found = await db(OUTPUT_TABLE_NAME)
+        .join(TABLE_NAME, 'hash', '=', 'transactionHash')
         .where('transactionHash', input.referencedOutputHash)
         .where('index', input.referencedOutputIndex)
+        // Confirmed
+        .whereNotNull('blockHash')
         .first();
       if (!found) {
         throw Error('Referenced output not found');
@@ -245,7 +248,7 @@ module.exports = exports = ({ db, utils, events }) => {
         .join(TABLE_NAME, 'hash', '=', 'transactionHash')
         .where('referencedOutputHash', input.referencedOutputHash)
         .where('referencedOutputIndex', input.referencedOutputIndex)
-        // Null => in pool
+        // Confirmed
         .whereNotNull('blockHash')
         .first();
       if (found) {
