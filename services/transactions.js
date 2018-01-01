@@ -147,6 +147,10 @@ module.exports = exports = ({ db, utils, events }) => {
       if (output.value >= MAX_UINT32) {
         throw Error('Output value must not larger than max uint32');
       }
+      // > 0
+      if (output.value <= 0) {
+        throw Error('Output value must be at least 1');
+      }
       transaction.totalOutput += output.value;
     });
     // and in range
