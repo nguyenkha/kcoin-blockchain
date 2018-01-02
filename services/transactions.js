@@ -10,6 +10,10 @@ module.exports = exports = ({ db, utils, events }) => {
   const MAX_SIZE = 1024 * 1024;
   // Max uint32
   const MAX_UINT32 = 2 ** 32;
+  // ADD [address 64 hex]
+  const LOCK_SCRIPT_REGEX = /ADD ([A-Fa-f0-9]{64})/;
+  // PUB [public key hex] SIG [signature hex]
+  const UNLOCK_SCRIPT_REGEX = /PUB ([A-Fa-f0-9]+) SIG ([A-Fa-f0-9]+)/;
 
   // Find one transaction by its hash
   let findByHash = async function (hash) {
@@ -177,8 +181,7 @@ module.exports = exports = ({ db, utils, events }) => {
     // Check lock script
     transaction.outputs.forEach(output => {
       // ADD [ADDRESS]
-      let parts = output.lockScript.split(' ');
-      if (parts.length !== 2 || parts[0] !== 'ADD') {
+      if (!output.lockScript.match(LOCK_SCRIPT_REGEX)) {
         throw Error('Lock script must have format ADD [ADDRESS]');
       }
     });
@@ -306,13 +309,13 @@ module.exports = exports = ({ db, utils, events }) => {
     transaction.inputs.forEach(input => {
       let lockScript = input.referencedOutput.lockScript;
       let unlockScript = input.unlockScript;
-      let parts = unlockScript.split(' ');
+      let parts = unlockScript.match(UNLOCK_SCRIPT_REGEX);
       let publicKey = parts[1];
-      let signature = parts[3];
-      parts = lockScript.split(' ');
+      let signature = parts[2];
+      parts = lockScript.match(LOCK_SCRIPT_REGEX);
       let address = parts[1];
       // Check address is hash of public key
-      if (utils.hash(Buffer.from(publicKey, 'hex')).toString('hex') !== address) {
+      if (utils.hash(Buffer.from(publicKey, 'hex')).compare(Buffer.from(address, 'hex')) !== 0) {
         throw Error('Address and public cannot match');
       }
       // Check signature with public key
