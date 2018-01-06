@@ -3,7 +3,7 @@ const _ = require('lodash');
 
 module.exports = exports = ({ blocks, transactions, utils }) => {
   // Block delay in seconds
-  const BLOCK_DELAY = process.env.BLOCK_DELAY || (10 * 60);
+  const BLOCK_DELAY = parseInt(process.env.BLOCK_DELAY) || (10 * 60);
 
   let generateBlock = async function (previousBlockHash, message, outputs, transactionList) {
     console.log('Started to generate new block...');
