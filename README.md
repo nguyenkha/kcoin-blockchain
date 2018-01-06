@@ -31,6 +31,9 @@ $ docker-compose run --rm api yarn knex migrate:latest
 
 ## References
 
+* Bitcoin: A Peer-to-Peer Electronic Cash System: [https://bitcoin.org/bitcoin.pdf]
+(https://bitcoin.org/bitcoin.pdf)
+
 * Bitcoin protocol documentation: [https://en.bitcoin.it/wiki/Protocol](https://en.bitcoin.it/wiki/Protocol)
 
 * Bitcoin protocol rule: [https://en.bitcoin.it/wiki/Protocol_rules](https://en.bitcoin.it/wiki/Protocol_rules)
