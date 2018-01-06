@@ -122,10 +122,10 @@ module.exports = exports = ({ db, utils, events }) => {
   
   // 2. Make sure neither in or out lists are empty
   let checkInputOutputNotEmpty = async function (transaction) {
-    if (transaction.inputs.length === 0) {
+    if (!transaction.inputs || transaction.inputs.length === 0) {
       throw Error('Inputs cannot be empty');
     }
-    if (transaction.outputs.length === 0) {
+    if (!transaction.outputs || transaction.outputs.length === 0) {
       throw Error('Outputs cannot be empty');
     }
   };
