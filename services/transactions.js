@@ -247,7 +247,7 @@ module.exports = exports = ({ db, utils, events }) => {
         .whereNotNull('blockHash')
         .first();
       if (!found) {
-        throw Error('Referenced output not found');
+        throw Error('Referenced output ' + input.referencedOutputHash + '#' + input.referencedOutputIndex + ' not found');
       }
       input.referencedOutput = found;
       // Not spent
@@ -259,12 +259,12 @@ module.exports = exports = ({ db, utils, events }) => {
         .whereNotNull('blockHash')
         .first();
       if (found) {
-        throw Error('Referenced output was spent');
+        throw Error('Referenced output ' + input.referencedOutputHash + '#' + input.referencedOutputIndex + ' was spent');
       }
       // Duplicated
       found = _.find(transaction.inputs, (input2, j) => input2.referencedOutputHash === input.referencedOutputHash && input2.referencedOutputIndex === input.referencedOutputIndex && i !== j);
       if (found) {
-        throw Error('Referenced output are spent on same transaction');
+        throw Error('Referenced output ' + input.referencedOutputHash + '#' + input.referencedOutputIndex + ' is spent on same transaction');
       }
     });
   };
